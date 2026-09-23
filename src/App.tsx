@@ -8,6 +8,7 @@ import { suggestFolderId } from './domain/classification'
 import { searchPictograms } from './services/arasaac'
 import { boardRepository, folderRepository } from './services/storage'
 import { exportBoardPdf } from './services/pdf'
+import { createBackup, parseBackup } from './services/backup'
 import './App.css'
 
 const sampleFolders = [
@@ -43,6 +44,7 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const backupInputRef = useRef<HTMLInputElement>(null)
   const searchAbort = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -115,6 +117,30 @@ function App() {
   }
 
   const createBoard = () => { const next = createEmptyBoard(board.rows, board.columns); updateBoard(next); setSelectedCellId(null); setPanel('none') }
+  const exportBackup = async () => {
+    const allBoards = boards.some((item) => item.id === board.id) ? boards : [...boards, board]
+    const blob = createBackup(allBoards, folders)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `tla-studio-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  const importBackup = async (file: File) => {
+    try {
+      const backup = await parseBackup(file)
+      await Promise.all(backup.folders.map((folder) => folderRepository.save(folder)))
+      await Promise.all(backup.boards.map((savedBoard) => boardRepository.save(savedBoard)))
+      setFolders(backup.folders)
+      setBoards((current) => [...current.filter((item) => !backup.boards.some((incoming) => incoming.id === item.id)), ...backup.boards])
+      const latest = [...backup.boards].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0]
+      if (latest) openSavedBoard(latest)
+      setError(`${backup.boards.length} TLA importé${backup.boards.length > 1 ? 's' : ''}.`)
+    } catch {
+      setError('Import impossible : sélectionnez un fichier de sauvegarde TLA valide.')
+    }
+  }
   const changeSize = (value: string) => { const [columns, rows] = value.split('x').map(Number); updateBoard(resizeBoard(board, rows, columns)) }
   const undo = () => { const previous = history.at(-1); if (!previous) return; setFuture((current) => [...current, board]); setBoard(previous); setHistory((current) => current.slice(0, -1)) }
   const redo = () => { const next = future.at(-1); if (!next) return; setHistory((current) => [...current, board]); setBoard(next); setFuture((current) => current.slice(0, -1)) }
@@ -240,7 +266,7 @@ function App() {
         <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA <span className="shortcut">⌘ N</span></button>
         <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Récents <span className="nav-count">{libraryBoards.length}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button></nav>
         <div className="sidebar-section"><div className="section-label">Dossiers <button className="mini-button" title="Ajouter un dossier"><Plus size={15} /></button></div>{folders.map((folder) => <button className={`folder-item ${folder.parentId ? 'nested' : ''} ${libraryFilter === folder.id ? 'selected' : ''}`} key={folder.id} onClick={() => { setLibraryFilter(folder.id); setMobileNav(false) }}><Folder size={15} />{folder.name}</button>)}</div>
-        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.</p>}</div>
+        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.</p>}<div className="backup-actions"><button onClick={() => void exportBackup()}><ArrowDownToLine size={13} /> Exporter</button><button onClick={() => backupInputRef.current?.click()}><Upload size={13} /> Importer</button></div></div>
         <div className="sidebar-footer"><div className="local-note"><span className="local-icon"><Check size={13} /></span><div><strong>Local à cet appareil</strong><small>Vos données restent privées</small></div></div></div>
       </aside>
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
@@ -256,6 +282,7 @@ function App() {
     {panel === 'list' && <div className="modal-backdrop"><section className="modal list-modal"><div className="modal-head"><div><span className="eyebrow">Création en lot</span><h2>Générer depuis une liste</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div><p className="modal-intro">Un mot par ligne ou séparé par une virgule. Chaque mot est recherché sur ARASAAC : le mot saisi restera la légende, avec une proposition de pictogramme modifiable ensuite.</p><textarea value={listText} onChange={(event) => { setListText(event.target.value); setBatchProposals([]); setBatchState('idle') }} rows={6} autoFocus /><div className="list-meta"><span>{normalizeList().length} mots détectés</span><button className="text-button" onClick={toggleSpeech}><Mic size={15} /> Dictée manuelle</button></div>{batchState === 'idle' && <button className="proposal-button" onClick={() => void loadBatchProposals()}><Search size={16} /> Rechercher les pictogrammes proposés</button>}{batchState !== 'idle' && <div className="batch-proposals"><div className="proposal-heading"><strong>Propositions ARASAAC</strong><span>{batchState === 'loading' ? 'Recherche en cours…' : 'Vérifiez les choix avant insertion'}</span></div>{batchProposals.map((proposal) => <div className="proposal-row" key={proposal.word}><span className="proposal-word">{proposal.word}</span>{proposal.state === 'loading' && <span className="proposal-status">Recherche…</span>}{proposal.state === 'empty' && <span className="proposal-status muted">Aucun résultat</span>}{proposal.state === 'error' && <span className="proposal-status error">Indisponible</span>}{proposal.result && <><img src={proposal.result.imageUrl} alt="" /><span className="proposal-label">{proposal.result.label}</span><span className="proposal-hint">modifiable après insertion</span></>}</div>)}</div>}<div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Annuler</button><button className="primary-button" disabled={batchState !== 'ready'} onClick={generateList}><Sparkles size={16} /> Insérer les propositions</button></div></section></div>}
     {panel === 'preview' && <div className="modal-backdrop"><section className="preview-modal"><div className="modal-head"><div><span className="eyebrow">Sortie fidèle à l’impression</span><h2>Aperçu {board.pageSize}</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div><div className="preview-frame"><div className="preview-sheet"><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => undefined} onEdit={() => undefined} onDragStart={() => undefined} onDrop={() => undefined} onDelete={() => undefined} preview />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div><div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Retour à l’édition</button><button className="primary-button" onClick={() => void downloadBoard()}><ArrowDownToLine size={16} /> Télécharger le PDF</button></div></section></div>}
     <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) importImage(file); event.target.value = '' }} />
+    <input ref={backupInputRef} type="file" accept="application/json,.json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void importBackup(file); event.target.value = '' }} />
   </div>
 }
 
