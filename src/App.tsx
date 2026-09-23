@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import { createEmptyBoard, categoryColors, type Board, type Cell, type FitzgeraldCategory, type PictogramResult } from './types'
 import { moveOrSwapCells, placeWords, resizeBoard } from './domain/layout'
+import { suggestFolderId } from './domain/classification'
 import { searchPictograms } from './services/arasaac'
 import { boardRepository, folderRepository } from './services/storage'
 import { exportBoardPdf } from './services/pdf'
@@ -136,6 +137,16 @@ function App() {
     setBatchState('idle')
   }
 
+  const classifyAutomatically = () => {
+    const folderId = suggestFolderId(board, folders)
+    if (!folderId) {
+      setError('Aucun thème reconnu : choisissez un dossier manuellement.')
+      return
+    }
+    updateBoard({ ...board, folderId })
+    setError('Classement automatique appliqué.')
+  }
+
   const importImage = (file: File) => {
     if (!selectedCellId) return
     const reader = new FileReader()
@@ -186,7 +197,7 @@ function App() {
       </aside>
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
       <main className="main-content">
-        <div className="editor-header"><div><div className="eyebrow">Brouillon · A4 paysage</div><input className="title-input" value={board.title} onChange={(event) => updateBoard({ ...board, title: event.target.value })} aria-label="Titre du TLA" /></div><div className="editor-tools"><label className="select-control"><span>Grille</span><select value={`${board.columns}x${board.rows}`} onChange={(event) => changeSize(event.target.value)}><option value="5x4">5 × 4</option><option value="6x4">6 × 4</option><option value="4x3">4 × 3</option><option value="6x5">6 × 5</option></select><ChevronDown size={14} /></label><button className="more-button" title="Plus d’options"><MoreHorizontal size={18} /></button></div></div>
+        <div className="editor-header"><div><div className="eyebrow">Brouillon · A4 paysage</div><input className="title-input" value={board.title} onChange={(event) => updateBoard({ ...board, title: event.target.value })} aria-label="Titre du TLA" /></div><div className="editor-tools"><label className="select-control"><span>Grille</span><select value={`${board.columns}x${board.rows}`} onChange={(event) => changeSize(event.target.value)}><option value="5x4">5 × 4</option><option value="6x4">6 × 4</option><option value="4x3">4 × 3</option><option value="6x5">6 × 5</option></select><ChevronDown size={14} /></label><label className="select-control folder-control"><span>Dossier</span><select aria-label="Dossier du TLA" value={board.folderId ?? ''} onChange={(event) => updateBoard({ ...board, folderId: event.target.value || undefined })}><option value="">Sans dossier</option>{folders.map((folder) => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select><ChevronDown size={14} /></label><button className="toolbar-button auto-classify" title="Proposer un dossier selon le titre et les mots" onClick={classifyAutomatically}><Sparkles size={14} /> Classer</button><button className="more-button" title="Plus d’options"><MoreHorizontal size={18} /></button></div></div>
         {error && <div className="notice error-notice"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}
         <div className="canvas-wrap"><div className="sheet" ref={sheetRef}><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => openSearch(cell.id)} onEdit={(patch) => updateCell(cell.id, patch)} onDragStart={() => setDraggedId(cell.id)} onDrop={() => { if (draggedId) updateBoard(moveOrSwapCells(board, draggedId, cell.id)); setDraggedId(null) }} onDelete={() => updateCell(cell.id, { source: null, imageData: undefined, pictogramId: undefined, label: '', favorite: false })} />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div>
         {board.overflowWords.length > 0 && <div className="overflow-notice"><strong>{board.overflowWords.length} mot{board.overflowWords.length > 1 ? 's' : ''} en attente</strong><span>{board.overflowWords.join(' · ')}</span><button onClick={() => setPanel('list')}>Revoir la sélection</button></div>}
