@@ -22,4 +22,5 @@ export const boardRepository = {
 export const folderRepository = {
   async list() { return (await database).getAll('folders') },
   async save(folder: Folder) { await (await database).put('folders', folder) },
+  async remove(id: string) { await (await database).delete('folders', id) },
 }
