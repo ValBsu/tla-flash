@@ -10,33 +10,31 @@ const blobToDataUrl = (blob: Blob): Promise<string> => new Promise((resolve, rej
   reader.readAsDataURL(blob)
 })
 
-const createExportCopy = async (element: HTMLElement): Promise<HTMLElement> => {
-  const copy = element.cloneNode(true) as HTMLElement
-  copy.style.position = 'fixed'
-  copy.style.left = '-100000px'
-  copy.style.top = '0'
-  copy.style.width = `${element.getBoundingClientRect().width}px`
-  copy.style.height = `${element.getBoundingClientRect().height}px`
-  document.body.appendChild(copy)
-  await Promise.all(Array.from(copy.querySelectorAll('img')).map(async (image) => {
+const prepareImagesForExport = async (element: HTMLElement): Promise<() => void> => {
+  const restorations: Array<() => void> = []
+  await Promise.all(Array.from(element.querySelectorAll('img')).map(async (image) => {
     if (!image.src || image.src.startsWith('data:')) return
+    const originalSource = image.src
     try {
-      const response = await fetch(image.src, { mode: 'cors' })
-      if (response.ok) image.src = await blobToDataUrl(await response.blob())
+      const response = await fetch(originalSource, { mode: 'cors' })
+      if (!response.ok) return
+      image.src = await blobToDataUrl(await response.blob())
+      await image.decode().catch(() => undefined)
+      restorations.push(() => { image.src = originalSource })
     } catch {
-      // The original source remains available for browsers that allow it.
+      // Keep the remote source when the browser cannot fetch it as a blob.
     }
   }))
-  return copy
+  return () => restorations.forEach((restore) => restore())
 }
 
 export async function exportBoardPdf(element: HTMLElement, board: Board, download = true): Promise<Blob> {
-  const copy = await createExportCopy(element)
+  const restoreImages = await prepareImagesForExport(element)
   let dataUrl: string
   try {
-    dataUrl = await toPng(copy, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' })
+    dataUrl = await toPng(element, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' })
   } finally {
-    copy.remove()
+    restoreImages()
   }
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: board.pageSize.toLowerCase() })
   const width = board.pageSize === 'A3' ? 420 : 297
