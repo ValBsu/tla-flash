@@ -18,6 +18,9 @@
 
 .folder-item.selected { color: var(--ink); background: #e6eeea; }
 .folder-row { position: relative; display: flex; align-items: center; }.folder-row.nested { padding-left: 25px; }.folder-row .folder-item { flex: 1; }.folder-actions { display: flex; gap: 2px; margin-right: 5px; opacity: 0; transition: opacity .15s; }.folder-row:hover .folder-actions, .folder-row:focus-within .folder-actions { opacity: 1; }.folder-actions button { width: 23px; height: 23px; display: grid; place-items: center; border: 0; border-radius: 4px; color: #7f8d89; background: transparent; }.folder-actions button:hover { color: var(--teal-dark); background: #dceee7; }
+.new-folder-form { display: flex; gap: 4px; margin: 0 8px 8px; }.new-folder-form input { min-width: 0; flex: 1; border: 1px solid #bcd7ce; border-radius: 5px; outline: 0; padding: 6px 7px; color: var(--ink); background: white; font-size: 11px; }.new-folder-form button { width: 27px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; color: var(--teal-dark); background: white; }.new-folder-form button:hover { background: #e6f3ee; }
+.sheet-heading { justify-content: center; }.sheet-heading h1 { text-align: center; }.sheet-format { position: absolute; right: 0; }
+.backup-actions { display: none; }
 .saved-boards { margin-top: 17px; border-top: 1px solid var(--line); padding-top: 15px; }
 .saved-boards-heading { display: flex; justify-content: space-between; padding: 0 10px 8px; color: #899592; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .saved-boards-heading small { color: #a1ada9; font-size: 10px; }
