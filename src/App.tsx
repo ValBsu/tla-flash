@@ -19,6 +19,7 @@ const sampleFolders = [
 ]
 
 type BatchProposal = { word: string; result?: PictogramResult; state: 'waiting' | 'loading' | 'ready' | 'empty' | 'error' }
+type LibraryFilter = 'recent' | 'drafts' | 'favorites' | string
 
 function App() {
   const [board, setBoard] = useState<Board>(() => createEmptyBoard())
@@ -26,6 +27,7 @@ function App() {
   const [future, setFuture] = useState<Board[]>([])
   const [boards, setBoards] = useState<Board[]>([])
   const [folders, setFolders] = useState(sampleFolders)
+  const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('recent')
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
   const [panel, setPanel] = useState<'none' | 'search' | 'list' | 'preview'>('none')
   const [searchTerm, setSearchTerm] = useState('')
@@ -75,6 +77,19 @@ function App() {
 
   const updateCell = (cellId: string, patch: Partial<Cell>) => updateBoard({ ...board, cells: board.cells.map((cell) => cell.id === cellId ? { ...cell, ...patch } : cell) })
   const selectedCell = board.cells.find((cell) => cell.id === selectedCellId)
+  const visibleBoards = [...boards]
+    .filter((item) => libraryFilter === 'recent' || (libraryFilter === 'drafts' && item.status === 'draft') || (libraryFilter === 'favorites' && item.cells.some((cell) => cell.favorite)) || item.folderId === libraryFilter)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .slice(0, 8)
+  const libraryLabel = libraryFilter === 'recent' ? 'TLA récents' : libraryFilter === 'drafts' ? 'Brouillons' : libraryFilter === 'favorites' ? 'Favoris' : folders.find((folder) => folder.id === libraryFilter)?.name ?? 'Documents'
+  const openSavedBoard = (savedBoard: Board) => {
+    setBoard(savedBoard)
+    setHistory([])
+    setFuture([])
+    setSelectedCellId(null)
+    setPanel('none')
+    setMobileNav(false)
+  }
 
   const openSearch = (cellId: string) => {
     setSelectedCellId(cellId); setSearchTerm(board.cells.find((cell) => cell.id === cellId)?.label ?? ''); setResults([]); setSearchState('idle'); setPanel('search'); setError('')
@@ -222,8 +237,9 @@ function App() {
       <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header"><span>Bibliothèque</span><button className="icon-button close-mobile" onClick={() => setMobileNav(false)}><X size={18} /></button></div>
         <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA <span className="shortcut">⌘ N</span></button>
-        <nav className="main-nav"><button className="nav-item active"><Sparkles size={17} /> Récents <span className="nav-count">{boards.length || 1}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className="nav-item"><Archive size={17} /> Brouillons</button><button className="nav-item"><span className="star-icon">★</span> Favoris</button></nav>
-        <div className="sidebar-section"><div className="section-label">Dossiers <button className="mini-button" title="Ajouter un dossier"><Plus size={15} /></button></div>{folders.map((folder) => <button className={`folder-item ${folder.parentId ? 'nested' : ''}`} key={folder.id}><Folder size={15} />{folder.name}</button>)}</div>
+        <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Récents <span className="nav-count">{boards.length || 1}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button></nav>
+        <div className="sidebar-section"><div className="section-label">Dossiers <button className="mini-button" title="Ajouter un dossier"><Plus size={15} /></button></div>{folders.map((folder) => <button className={`folder-item ${folder.parentId ? 'nested' : ''} ${libraryFilter === folder.id ? 'selected' : ''}`} key={folder.id} onClick={() => { setLibraryFilter(folder.id); setMobileNav(false) }}><Folder size={15} />{folder.name}</button>)}</div>
+        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">Aucun TLA dans cette vue.</p>}</div>
         <div className="sidebar-footer"><div className="local-note"><span className="local-icon"><Check size={13} /></span><div><strong>Local à cet appareil</strong><small>Vos données restent privées</small></div></div></div>
       </aside>
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
