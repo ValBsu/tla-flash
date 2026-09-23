@@ -163,7 +163,30 @@ function App() {
     recognition.onend = () => setIsSpeaking(false); recognition.onerror = () => { setError('Micro refusé ou reconnaissance indisponible.'); setIsSpeaking(false) }; recognition.start()
   }
 
-  const printBoard = async () => { if (sheetRef.current) await exportBoardPdf(sheetRef.current, board, false).then((blob) => window.open(URL.createObjectURL(blob), '_blank')) }
+  const printBoard = async () => {
+    if (!sheetRef.current) return
+    try {
+      const blob = await exportBoardPdf(sheetRef.current, board, false)
+      const frame = document.createElement('iframe')
+      const url = URL.createObjectURL(blob)
+      frame.title = 'Aperçu d’impression'
+      frame.style.position = 'fixed'
+      frame.style.width = '1px'
+      frame.style.height = '1px'
+      frame.style.right = '0'
+      frame.style.bottom = '0'
+      frame.style.border = '0'
+      frame.onload = () => {
+        frame.contentWindow?.focus()
+        frame.contentWindow?.print()
+        window.setTimeout(() => { URL.revokeObjectURL(url); frame.remove() }, 1000)
+      }
+      frame.src = url
+      document.body.appendChild(frame)
+    } catch {
+      setError('L’impression du PDF a échoué. Utilisez Télécharger le PDF puis imprimez le fichier.')
+    }
+  }
   const downloadBoard = async () => {
     if (!sheetRef.current) return
     try {
