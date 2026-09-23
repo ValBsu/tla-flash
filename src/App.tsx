@@ -83,7 +83,7 @@ function App() {
   const visibleBoards = libraryBoards
     .filter((item) => libraryFilter === 'recent' || (libraryFilter === 'drafts' && item.status === 'draft') || (libraryFilter === 'favorites' && item.cells.some((cell) => cell.favorite)) || item.folderId === libraryFilter)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, 8)
+    .slice(0, libraryFilter === 'recent' ? 2 : 8)
   const libraryLabel = libraryFilter === 'recent' ? 'TLA récents' : libraryFilter === 'drafts' ? 'Brouillons' : libraryFilter === 'favorites' ? 'Favoris' : folders.find((folder) => folder.id === libraryFilter)?.name ?? 'Documents'
   const openSavedBoard = (savedBoard: Board) => {
     setBoard(savedBoard)
