@@ -4,21 +4,39 @@ import type { Board, Cell } from '../types'
 
 const pageDimensions = (board: Board) => board.pageSize === 'A3' ? { width: 420, height: 297 } : { width: 297, height: 210 }
 
-const fetchImageData = async (cell: Cell): Promise<string | undefined> => {
+type PdfImage = string | HTMLImageElement
+
+const loadImageElement = (source: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.crossOrigin = 'anonymous'
+  image.onload = () => resolve(image)
+  image.onerror = () => reject(new Error('Image ARASAAC inaccessible'))
+  image.src = source
+})
+
+const blobToDataUrl = async (blob: Blob): Promise<string> => {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize))
+  }
+  return `data:${blob.type || 'image/png'};base64,${btoa(binary)}`
+}
+
+const fetchImageData = async (cell: Cell): Promise<PdfImage | undefined> => {
   if (!cell.imageData) return undefined
   if (cell.imageData.startsWith('data:')) return cell.imageData
   try {
     const response = await fetch(cell.imageData, { mode: 'cors' })
-    if (!response.ok) return undefined
-    const blob = await response.blob()
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.onerror = () => reject(reader.error)
-      reader.readAsDataURL(blob)
-    })
+    if (!response.ok) throw new Error(`Image indisponible (${response.status})`)
+    return await blobToDataUrl(await response.blob())
   } catch {
-    return undefined
+    try {
+      return await loadImageElement(cell.imageData)
+    } catch {
+      return undefined
+    }
   }
 }
 
@@ -27,12 +45,13 @@ const imageFormat = (dataUrl: string) => {
   return mime.includes('jpeg') || mime.includes('jpg') ? 'JPEG' : 'PNG'
 }
 
-const fitImage = (doc: jsPDF, dataUrl: string, x: number, y: number, width: number, height: number) => {
-  const imageProperties = doc.getImageProperties(dataUrl)
+const fitImage = (doc: jsPDF, image: PdfImage, x: number, y: number, width: number, height: number) => {
+  const imageProperties = doc.getImageProperties(image)
   const ratio = Math.min(width / imageProperties.width, height / imageProperties.height)
   const imageWidth = imageProperties.width * ratio
   const imageHeight = imageProperties.height * ratio
-  doc.addImage(dataUrl, imageFormat(dataUrl), x + (width - imageWidth) / 2, y + (height - imageHeight) / 2, imageWidth, imageHeight)
+  const format = typeof image === 'string' ? imageFormat(image) : 'PNG'
+  doc.addImage(image, format, x + (width - imageWidth) / 2, y + (height - imageHeight) / 2, imageWidth, imageHeight)
 }
 
 export async function exportBoardPdf(_element: HTMLElement, board: Board, download = true): Promise<Blob> {
