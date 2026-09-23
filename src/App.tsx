@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Archive, ArrowDownToLine, Check, ChevronDown, FilePlus2, Folder, Grid2X2, ImagePlus, LayoutGrid, Menu, Mic, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
+  Archive, ArrowDownToLine, Check, ChevronDown, FilePlus2, Folder, ImagePlus, LayoutGrid, Menu, Mic, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
 } from 'lucide-react'
 import { createEmptyBoard, categoryColors, type Board, type Cell, type FitzgeraldCategory, type PictogramResult } from './types'
 import { moveOrSwapCells, placeWords, resizeBoard } from './domain/layout'
@@ -251,7 +251,7 @@ function App() {
   return <div className="app-shell">
     <header className="topbar">
       <button className="icon-button mobile-menu" aria-label="Ouvrir le menu" onClick={() => setMobileNav(true)}><Menu size={20} /></button>
-      <div className="brand"><div className="brand-mark"><Grid2X2 size={18} /></div><span>TLA<span className="brand-soft">·</span>studio</span></div>
+      <div className="brand"><div className="brand-mark"><img src="/favicon.svg" alt="TLA studio" /></div><span>TLA<span className="brand-soft">·</span>studio</span></div>
       <div className="topbar-divider" />
       <div className="save-status"><span className={`status-dot ${saveState}`} />{saveState === 'saved' ? 'Enregistré sur cet appareil' : saveState === 'error' ? 'Sauvegarde impossible' : 'Enregistrement…'}</div>
       <div className="top-actions">
