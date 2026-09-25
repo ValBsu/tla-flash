@@ -110,6 +110,23 @@
 .cell-card { border-color: #000; transition: transform .15s, box-shadow .15s; }
 .cell-card:hover { border-color: #000; }
 .success-notice { color: #276546; background: #e5f4e9; }
+.translate-toolbar { max-width: 1030px; margin: -12px auto 14px; display: flex; justify-content: flex-end; }
+.translate-button { min-height: 35px; border-color: #cfe1da; color: var(--teal-dark); background: #edf7f3; }
+.translate-button:hover { background: #dceee7; }
+.translation-modal { width: min(820px, 100%); }
+.translation-privacy { margin: -7px 0 16px; border-left: 3px solid #d99b36; padding: 8px 10px; color: #745820; background: #fbf3df; font-size: 11px; line-height: 1.45; }
+.translation-title { display: grid; gap: 5px; margin-bottom: 13px; color: #697874; font-size: 11px; font-weight: 700; }
+.translation-title input, .translation-row input, .translation-overflow input { min-width: 0; height: 37px; border: 1px solid #cbdad4; border-radius: 5px; outline: 0; padding: 0 9px; color: var(--ink); background: white; font-size: 13px; }
+.translation-title input:focus, .translation-row input:focus, .translation-overflow input:focus { border-color: #7aaea2; box-shadow: 0 0 0 3px #dff0eb; }
+.translation-rows { max-height: min(42vh, 360px); overflow: auto; border: 1px solid #dce7e2; border-radius: 6px; }
+.translation-row { min-height: 54px; display: grid; grid-template-columns: 38px minmax(100px, .7fr) minmax(130px, 1fr); align-items: center; gap: 10px; border-bottom: 1px solid #edf1ef; padding: 7px 10px; }
+.translation-row:last-child { border-bottom: 0; }
+.translation-row img, .translation-icon { width: 36px; height: 36px; display: grid; place-items: center; object-fit: contain; color: #81918b; }
+.translation-original { overflow-wrap: anywhere; color: #596963; font-size: 12px; }
+.translation-overflow { display: grid; gap: 7px; margin-top: 14px; }
+.translation-overflow > strong { color: #697874; font-size: 11px; }
+.translation-overflow label { display: grid; grid-template-columns: minmax(100px, .7fr) minmax(130px, 1fr); align-items: center; gap: 10px; color: #596963; font-size: 12px; }
+.translation-modal .modal-actions { position: sticky; bottom: -25px; padding: 12px 0 0; background: #fbfdfc; }
 .sidebar { overflow-y: auto; }
 .saved-board-icon { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 5px; color: var(--teal); background: #e2f1ec; }
 .saved-board-copy { min-width: 0; }.saved-board-copy strong, .saved-board-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.saved-board-copy strong { font-size: 12px; }.saved-board-copy small { margin-top: 2px; color: #8b9996; font-size: 10px; }.saved-empty { margin: 4px 10px; color: #9aa6a2; font-size: 11px; }.backup-actions { display: flex; gap: 6px; margin: 10px 10px 2px; }.backup-actions button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 28px; border: 1px solid var(--line); border-radius: 5px; color: #657572; background: white; font-size: 10px; font-weight: 700; }.backup-actions button:hover { color: var(--teal-dark); border-color: #a9cfc2; background: #eef7f3; }

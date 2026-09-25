@@ -1,4 +1,4 @@
-name: Deploy TLA studio
+name: Deploy TLA Flash
 
 on:
   push:

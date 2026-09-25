@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Archive, ArrowDownToLine, Check, ChevronDown, FilePlus2, Folder, ImagePlus, LayoutGrid, Menu, Mic, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
+  Archive, ArrowDownToLine, Check, ChevronDown, FilePlus2, Folder, ImagePlus, Languages, LayoutGrid, Menu, Mic, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
 } from 'lucide-react'
 import { createEmptyBoard, type Board, type Cell, type FitzgeraldCategory, type Folder as TlaFolder, type PictogramResult } from './types'
 import { moveOrSwapCells, placeWords, resizeBoard } from './domain/layout'
@@ -11,6 +11,7 @@ import './App.css'
 
 type BatchProposal = { word: string; result?: PictogramResult; state: 'waiting' | 'loading' | 'ready' | 'empty' | 'error' }
 type LibraryFilter = 'recent' | 'drafts' | 'favorites' | 'folders' | `folder:${string}`
+type TranslationDraft = { title: string; cells: { id: string; original: string; translated: string }[]; overflowWords: string[] }
 
 function App() {
   const [board, setBoard] = useState<Board>(() => createEmptyBoard())
@@ -19,9 +20,10 @@ function App() {
   const [boards, setBoards] = useState<Board[]>([])
   const [folders, setFolders] = useState<TlaFolder[]>([])
   const editableBoardIds = useRef(new Set<string>())
+  const boardRef = useRef(board)
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('recent')
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
-  const [panel, setPanel] = useState<'none' | 'search' | 'list' | 'preview'>('none')
+  const [panel, setPanel] = useState<'none' | 'search' | 'list' | 'preview' | 'translation'>('none')
   const [searchTerm, setSearchTerm] = useState('')
   const [results, setResults] = useState<PictogramResult[]>([])
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -33,6 +35,10 @@ function App() {
   const [listText, setListText] = useState('manger\nboire\nassiette\ncouteau\nfourchette\nserviette')
   const [batchProposals, setBatchProposals] = useState<BatchProposal[]>([])
   const [batchState, setBatchState] = useState<'idle' | 'loading' | 'ready'>('idle')
+  const [translationSource, setTranslationSource] = useState<Board | null>(null)
+  const [translationDraft, setTranslationDraft] = useState<TranslationDraft | null>(null)
+  const [translationState, setTranslationState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [translationError, setTranslationError] = useState('')
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
@@ -50,23 +56,35 @@ function App() {
   }, [])
 
   useEffect(() => {
+    boardRef.current = board
     if (!editableBoardIds.current.has(board.id)) return
-    const timer = window.setTimeout(() => {
-      setSaveState('saving')
-      const next = { ...board, updatedAt: new Date().toISOString() }
-      void boardRepository.save(next).then(() => {
-        setBoards((current) => [...current.filter((item) => item.id !== next.id), next].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
-        setSaveState('saved')
-      }).catch(() => setSaveState('error'))
-    }, 450)
-    return () => window.clearTimeout(timer)
+    setSaveState('saving')
+    const next = { ...board, status: 'draft' as const, updatedAt: new Date().toISOString() }
+    void boardRepository.save(next).then(() => {
+      setBoards((current) => [...current.filter((item) => item.id !== next.id), next].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
+      setSaveState('saved')
+    }).catch(() => setSaveState('error'))
   }, [board])
+
+  useEffect(() => {
+    const saveCurrentDraft = () => {
+      const current = boardRef.current
+      if (!editableBoardIds.current.has(current.id)) return
+      void boardRepository.save({ ...current, status: 'draft', updatedAt: new Date().toISOString() })
+    }
+    window.addEventListener('pagehide', saveCurrentDraft)
+    window.addEventListener('beforeunload', saveCurrentDraft)
+    return () => {
+      window.removeEventListener('pagehide', saveCurrentDraft)
+      window.removeEventListener('beforeunload', saveCurrentDraft)
+    }
+  }, [])
 
   const updateBoard = (next: Board) => {
     editableBoardIds.current.add(next.id)
     setHistory((current) => [...current.slice(-30), board])
     setFuture([])
-    setBoard(next)
+    setBoard({ ...next, status: 'draft' })
   }
 
   const updateCell = (cellId: string, patch: Partial<Cell>) => updateBoard({ ...board, cells: board.cells.map((cell) => cell.id === cellId ? { ...cell, ...patch } : cell) })
@@ -173,6 +191,55 @@ function App() {
     setPanel('none')
     setBatchProposals([])
     setBatchState('idle')
+  }
+
+  const translateBoard = async () => {
+    const source = board
+    const filledCells = source.cells.filter((cell) => cell.label.trim())
+    setTranslationSource(source)
+    setTranslationDraft(null)
+    setTranslationError('')
+    setTranslationState('loading')
+    setPanel('translation')
+    try {
+      const { translateTexts } = await import('./services/translation')
+      const translated = await translateTexts([source.title, ...filledCells.map((cell) => cell.label), ...source.overflowWords])
+      setTranslationDraft({
+        title: translated[0] || source.title,
+        cells: filledCells.map((cell, index) => ({ id: cell.id, original: cell.label, translated: translated[index + 1] || cell.label })),
+        overflowWords: source.overflowWords.map((word, index) => translated[filledCells.length + index + 1] || word),
+      })
+      setTranslationState('ready')
+    } catch {
+      setTranslationError('La traduction est indisponible. Vérifie ta connexion puis réessaie.')
+      setTranslationState('error')
+    }
+  }
+
+  const createTranslatedCopy = () => {
+    if (!translationSource || !translationDraft) return
+    const translatedCells = new Map(translationDraft.cells.map((cell) => [cell.id, cell.translated.trim()]))
+    const now = new Date().toISOString()
+    const translatedBoard: Board = {
+      ...translationSource,
+      id: crypto.randomUUID(),
+      title: translationDraft.title.trim() || `${translationSource.title} (EN)`,
+      status: 'draft',
+      createdAt: now,
+      updatedAt: now,
+      cells: translationSource.cells.map((cell) => ({
+        ...cell,
+        id: crypto.randomUUID(),
+        label: translatedCells.get(cell.id) || cell.label,
+      })),
+      overflowWords: translationDraft.overflowWords.map((word, index) => word.trim() || translationSource.overflowWords[index]),
+    }
+    updateBoard(translatedBoard)
+    setLibraryFilter('recent')
+    setPanel('none')
+    setTranslationSource(null)
+    setTranslationDraft(null)
+    setTranslationState('idle')
   }
 
   const importImage = (file: File) => {
@@ -283,11 +350,10 @@ function App() {
   return <div className="app-shell">
     <header className="topbar">
       <button className="icon-button mobile-menu" aria-label="Ouvrir le menu" onClick={() => setMobileNav(true)}><Menu size={20} /></button>
-      <div className="brand"><div className="brand-mark"><img src="/favicon.svg" alt="TLA studio" /></div><span>TLA<span className="brand-soft">·</span>studio</span></div>
+      <div className="brand"><div className="brand-mark"><img src="/favicon.svg" alt="TLA Flash" /></div><span>TLA Flash</span></div>
       <div className="topbar-divider" />
       <div className="save-status"><span className={`status-dot ${saveState}`} />{saveState === 'saved' ? 'Enregistré sur cet appareil' : saveState === 'error' ? 'Sauvegarde impossible' : 'Enregistrement…'}</div>
       <div className="top-actions">
-        <button className="toolbar-button" onClick={() => setPanel('list')}><Sparkles size={16} /> Générer une liste</button>
         <button className="icon-button" title="Annuler" aria-label="Annuler" onClick={undo} disabled={!history.length}><Undo2 size={18} /></button>
         <button className="icon-button" title="Rétablir" aria-label="Rétablir" onClick={redo} disabled={!future.length}><Redo2 size={18} /></button>
         <button className="toolbar-button" onClick={() => setPanel('preview')}><LayoutGrid size={16} /> Aperçu</button>
@@ -304,12 +370,12 @@ function App() {
         <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Récents <span className="nav-count">{libraryBoards.length}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button><button className={`nav-item ${libraryFilter === 'folders' || selectedFolderId !== null ? 'active' : ''}`} onClick={() => setLibraryFilter('folders')}><Folder size={17} /> Dossiers <span className="nav-count">{folders.length}</span></button></nav>
         {(libraryFilter === 'folders' || selectedFolderId !== null) && <div className="sidebar-section"><div className="section-label"><span>Dossiers personnalisés</span><button className="mini-button" title="Créer un dossier" aria-label="Créer un dossier" onClick={() => setIsCreatingFolder(true)}><Plus size={15} /></button></div>{isCreatingFolder && <form className="new-folder-form" onSubmit={(event) => { event.preventDefault(); void createFolder() }}><input autoFocus value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} placeholder="Nom du dossier" aria-label="Nom du dossier" /><button type="submit" disabled={!newFolderName.trim()}><Check size={14} /></button><button type="button" onClick={() => { setIsCreatingFolder(false); setNewFolderName('') }}><X size={14} /></button></form>}{folders.length ? [...folders].sort((left, right) => left.name.localeCompare(right.name, 'fr')).map((folder) => <div className="folder-row" key={folder.id}><button className={`folder-item ${selectedFolderId === folder.id ? 'selected' : ''}`} onClick={() => { setLibraryFilter(`folder:${folder.id}`); setMobileNav(false) }}><Folder size={15} />{folder.name}<small className="nav-count">{libraryBoards.filter((item) => item.folderId === folder.id).length}</small></button><span className="folder-actions"><button title={`Renommer ${folder.name}`} aria-label={`Renommer ${folder.name}`} onClick={() => void renameFolder(folder)}><Pencil size={12} /></button><button title={`Supprimer ${folder.name}`} aria-label={`Supprimer ${folder.name}`} onClick={() => void removeFolder(folder)}><Trash2 size={12} /></button></span></div>) : <p className="saved-empty">Crée un dossier pour retrouver facilement tes TLA.</p>}</div>}
         <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">{libraryFilter === 'folders' ? 'Choisis un dossier pour afficher ses TLA.' : 'Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.'}</p>}</div>
-        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.</p>}</div>
         <div className="sidebar-footer"><div className="local-note"><span className="local-icon"><Check size={13} /></span><div><strong>Local à cet appareil</strong><small>Vos données restent privées</small></div></div></div>
       </aside>
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
       <main className="main-content">
         <div className="editor-header"><div><div className="eyebrow">Brouillon · A4 paysage</div><input className="title-input" value={board.title} onChange={(event) => updateBoard({ ...board, title: event.target.value })} aria-label="Titre du TLA" /></div><div className="editor-tools"><label className="select-control"><span>Grille</span><select value={`${board.columns}x${board.rows}`} onChange={(event) => changeSize(event.target.value)}><option value="5x4">5 × 4</option><option value="6x4">6 × 4</option><option value="4x3">4 × 3</option><option value="6x5">6 × 5</option></select><ChevronDown size={14} /></label><label className="select-control folder-control"><span>Dossier</span><select aria-label="Dossier du TLA" value={board.folderId ?? ''} onChange={(event) => updateBoard({ ...board, folderId: event.target.value || undefined })}><option value="">Sans dossier</option>{folders.map((folder) => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select><ChevronDown size={14} /></label></div></div>
+        <div className="translate-toolbar"><button className="toolbar-button translate-button" onClick={() => void translateBoard()}><Languages size={16} /> Traduire en anglais</button></div>
         {error && <div className="notice error-notice"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}{success && <div className="notice success-notice"><span>{success}</span><button onClick={() => setSuccess('')}><X size={15} /></button></div>}
         <div className="canvas-wrap"><div className="sheet" ref={sheetRef}><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => openSearch(cell.id)} onEdit={(patch) => updateCell(cell.id, patch)} onDragStart={() => setDraggedId(cell.id)} onDrop={() => { if (draggedId) updateBoard(moveOrSwapCells(board, draggedId, cell.id)); setDraggedId(null) }} onDelete={() => updateCell(cell.id, { source: null, imageData: undefined, pictogramId: undefined, label: '', favorite: false })} />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div>
         {board.overflowWords.length > 0 && <div className="overflow-notice"><strong>{board.overflowWords.length} mot{board.overflowWords.length > 1 ? 's' : ''} en attente</strong><span>{board.overflowWords.join(' · ')}</span><button onClick={() => setPanel('list')}>Revoir la sélection</button></div>}
@@ -319,6 +385,7 @@ function App() {
     {panel === 'search' && <SearchPanel term={searchTerm} setTerm={setSearchTerm} results={results} state={searchState} error={error} onSearch={() => void runSearch()} onSpeech={toggleSpeech} speaking={isSpeaking} onChoose={choosePictogram} onClose={() => setPanel('none')} onUpload={() => fileInputRef.current?.click()} />}
     {panel === 'list' && <div className="modal-backdrop"><section className="modal list-modal"><div className="modal-head"><div><span className="eyebrow">Création en lot</span><h2>Générer depuis une liste</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div><p className="modal-intro">Un mot par ligne ou séparé par une virgule. Chaque mot est recherché sur ARASAAC : le mot saisi restera la légende, avec une proposition de pictogramme modifiable ensuite.</p><textarea value={listText} onChange={(event) => { setListText(event.target.value); setBatchProposals([]); setBatchState('idle') }} rows={6} autoFocus /><div className="list-meta"><span>{normalizeList().length} mots détectés</span><button className="text-button" onClick={toggleSpeech}><Mic size={15} /> Dictée manuelle</button></div>{batchState === 'idle' && <button className="proposal-button" onClick={() => void loadBatchProposals()}><Search size={16} /> Rechercher les pictogrammes proposés</button>}{batchState !== 'idle' && <div className="batch-proposals"><div className="proposal-heading"><strong>Propositions ARASAAC</strong><span>{batchState === 'loading' ? 'Recherche en cours…' : 'Vérifiez les choix avant insertion'}</span></div>{batchProposals.map((proposal) => <div className="proposal-row" key={proposal.word}><span className="proposal-word">{proposal.word}</span>{proposal.state === 'loading' && <span className="proposal-status">Recherche…</span>}{proposal.state === 'empty' && <span className="proposal-status muted">Aucun résultat</span>}{proposal.state === 'error' && <span className="proposal-status error">Indisponible</span>}{proposal.result && <><img src={proposal.result.imageUrl} alt="" /><span className="proposal-label">{proposal.result.label}</span><span className="proposal-hint">modifiable après insertion</span></>}</div>)}</div>}<div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Annuler</button><button className="primary-button" disabled={batchState !== 'ready'} onClick={generateList}><Sparkles size={16} /> Insérer les propositions</button></div></section></div>}
     {panel === 'preview' && <div className="modal-backdrop"><section className="preview-modal"><div className="modal-head"><div><span className="eyebrow">Sortie fidèle à l’impression</span><h2>Aperçu {board.pageSize}</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div><div className="preview-frame"><div className="preview-sheet"><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => undefined} onEdit={() => undefined} onDragStart={() => undefined} onDrop={() => undefined} onDelete={() => undefined} preview />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div><div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Retour à l’édition</button><button className="primary-button" onClick={() => void downloadBoard()}><ArrowDownToLine size={16} /> Télécharger le PDF</button></div></section></div>}
+    {panel === 'translation' && <div className="modal-backdrop"><section className="modal translation-modal"><div className="modal-head"><div><span className="eyebrow">Copie du TLA · anglais</span><h2>Vérifier la traduction</h2></div><button className="icon-button" aria-label="Fermer" onClick={() => { setPanel('none'); setTranslationState('idle') }}><X size={19} /></button></div><p className="translation-privacy">Le titre et les mots sont envoyés au service public MyMemory pour traduction. N’inclus pas d’informations personnelles.</p>{translationState === 'loading' && <div className="search-start"><Languages size={28} /><p>Traduction en cours…</p></div>}{translationState === 'error' && <div className="inline-error">{translationError}<button className="text-button" onClick={() => void translateBoard()}>Réessayer</button></div>}{translationState === 'ready' && translationDraft && translationSource && <><p className="modal-intro">L’original reste intact. Corrige les propositions ci-dessous, puis crée la copie anglaise.</p><label className="translation-title"><span>Titre du TLA</span><input value={translationDraft.title} onChange={(event) => setTranslationDraft((current) => current ? { ...current, title: event.target.value } : current)} /></label><div className="translation-rows">{translationDraft.cells.map((translatedCell) => { const sourceCell = translationSource.cells.find((cell) => cell.id === translatedCell.id); return <div className="translation-row" key={translatedCell.id}>{sourceCell?.imageData ? <img src={sourceCell.imageData} alt="" /> : <span className="translation-icon"><LayoutGrid size={17} /></span>}<span className="translation-original">{translatedCell.original}</span><input aria-label={`Traduction de ${translatedCell.original}`} value={translatedCell.translated} onChange={(event) => setTranslationDraft((current) => current ? { ...current, cells: current.cells.map((cell) => cell.id === translatedCell.id ? { ...cell, translated: event.target.value } : cell) } : current)} /></div>})}</div>{translationDraft.overflowWords.length > 0 && <div className="translation-overflow"><strong>Mots en attente</strong>{translationDraft.overflowWords.map((word, index) => <label key={`${translationSource.overflowWords[index]}-${index}`}><span>{translationSource.overflowWords[index]}</span><input aria-label={`Traduction du mot en attente ${translationSource.overflowWords[index]}`} value={word} onChange={(event) => setTranslationDraft((current) => current ? { ...current, overflowWords: current.overflowWords.map((item, itemIndex) => itemIndex === index ? event.target.value : item) } : current)} /></label>)}</div>}</>}<div className="modal-actions"><button className="toolbar-button secondary" onClick={() => { setPanel('none'); setTranslationState('idle') }}>Annuler</button><button className="primary-button" onClick={createTranslatedCopy} disabled={translationState !== 'ready' || !translationDraft}>{translationState === 'ready' ? 'Créer la copie anglaise' : 'Traduction…'}</button></div></section></div>}
     <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) importImage(file); event.target.value = '' }} />
   </div>
 }

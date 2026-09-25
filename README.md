@@ -1,4 +1,4 @@
-# TLA studio
+# TLA Flash
 
 Application locale-first de création de tableaux de langage augmenté, pensée pour un usage éducatif.
 
@@ -21,7 +21,9 @@ URL attendue : `https://valbsu.github.io/tla-flash/`.
 
 ## Sauvegarder les TLA
 
-Les TLA et dossiers sont enregistrés automatiquement dans le navigateur. Ils restent disponibles après fermeture de l’app et redémarrage de l’ordinateur, dans le même navigateur. **Sauvegarder** télécharge une archive ZIP de la bibliothèque complète, nommée avec le titre du TLA ouvert ; les dossiers et leur classement sont inclus. **Restaurer** fusionne l’archive avec la bibliothèque locale ; les TLA ou dossiers portant le même identifiant sont remplacés après confirmation, les autres sont conservés. Pour changer de navigateur ou d’appareil, transférez la sauvegarde ZIP.
+Les TLA modifiés sont enregistrés immédiatement comme brouillons dans le navigateur ; une fermeture de page déclenche aussi une dernière tentative de sauvegarde. Ils restent disponibles après fermeture de l’app et redémarrage de l’ordinateur, dans le même navigateur. Une coupure de courant pendant l’écriture IndexedDB peut toutefois empêcher la toute dernière modification d’être conservée. **Sauvegarder** télécharge une archive ZIP de la bibliothèque complète, nommée avec le titre du TLA ouvert ; les dossiers et leur classement sont inclus. **Restaurer** fusionne l’archive avec la bibliothèque locale ; les TLA ou dossiers portant le même identifiant sont remplacés après confirmation, les autres sont conservés. Pour changer de navigateur ou d’appareil, transférez la sauvegarde ZIP.
+
+La traduction en anglais utilise le service public MyMemory et nécessite une connexion Internet. Le titre et les libellés du TLA lui sont transmis pour traduction ; relis et corrige les propositions avant de créer la copie anglaise. Le TLA original reste inchangé.
 
 ## Commandes
 
