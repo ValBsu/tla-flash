@@ -3,8 +3,8 @@
 .app-shell { min-height: 100vh; background: radial-gradient(circle at 78% 12%, #f8fbf8 0, #edf2ef 37%, #e8eeeb 100%); }
 .topbar { height: 68px; padding: 0 26px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--line); background: rgba(251,253,252,.92); }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font: 700 17px 'Space Grotesk', sans-serif; letter-spacing: -.3px; white-space: nowrap; }
-.brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: white; background: var(--teal); box-shadow: 0 5px 12px rgba(23,125,115,.2); overflow: hidden; }
-.brand-mark img { width: 18px; height: 18px; object-fit: contain; display: block; }
+.brand-mark { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; background: transparent; }
+.brand-mark img { width: 34px; height: 34px; object-fit: contain; display: block; }
 .brand-soft { color: #8b9a96; margin: 0 2px; }
 .topbar-divider { height: 24px; width: 1px; background: var(--line); }.save-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #47a37b; }.status-dot.saving { background: #e9ae45; }.status-dot.error { background: #c95b5b; }
 .top-actions { display: flex; align-items: center; gap: 7px; margin-left: auto; }.toolbar-button, .primary-button, .icon-button, .new-board, .more-button { border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 7px; min-height: 36px; padding: 0 12px; color: var(--ink); background: transparent; font-size: 13px; font-weight: 600; }.toolbar-button:hover, .icon-button:hover, .more-button:hover { background: #e9f0ec; }.toolbar-button.secondary { border-color: var(--line); background: #fff; }.primary-button { color: white; background: var(--teal); box-shadow: 0 4px 10px rgba(23,125,115,.18); }.primary-button:hover { background: var(--teal-dark); }.icon-button { width: 36px; padding: 0; }.mobile-menu, .close-mobile { display: none; }

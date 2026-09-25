@@ -19,6 +19,21 @@ Le workflow `.github/workflows/deploy.yml` teste, construit et publie automatiqu
 
 URL attendue : `https://valbsu.github.io/tla-flash/`.
 
+## Publier manuellement sur Netlify sans GitHub
+
+1. Construire le site avec `npm ci && npm run build`. Le site prêt à publier est dans `dist` ; les règles Netlify `_headers` et `_redirects` y sont copiées automatiquement.
+2. Créer un site dans Netlify sans connecter de dépôt Git, puis déposer le dossier `dist` dans la zone de déploiement manuel de Netlify.
+3. Utiliser l’adresse HTTPS fournie par Netlify dans Chrome ou Edge et choisir **Installer TLA Flash** dans le menu du navigateur.
+4. Pour publier une mise à jour, reconstruire le projet et déposer le nouveau `dist` dans l’onglet **Deploys** du même site.
+
+Le fichier `netlify.toml` configure aussi la construction automatique si l’équipe décide plus tard de connecter un dépôt. Le déploiement manuel décrit ci-dessus n’utilise pas GitHub. Un site Netlify est public par défaut : vérifier avec l’informatique que cet hébergement est autorisé avant de l’utiliser en contexte professionnel. Les TLA restent dans le stockage du navigateur ; le PDF et le ZIP sont produits côté navigateur et doivent être transférés manuellement vers le stockage approuvé par l’établissement. La recherche ARASAAC et la traduction MyMemory restent des services externes.
+
+## Installer et utiliser comme PWA
+
+La version de production est installable depuis le navigateur et met en cache l’interface pour la rouvrir hors connexion. La recherche ARASAAC et la traduction anglaise nécessitent toujours Internet. Pour l’IME, l’informatique peut publier le contenu de `dist` sur un serveur privé en HTTPS ; l’adresse interne doit rester la même sur les appareils pour retrouver leur stockage local. Le ZIP reste le moyen de transfert ou de sauvegarde entre appareils.
+
+Après le déploiement, ouvrez l’adresse dans Chrome ou Edge et choisissez **Installer TLA Flash** depuis le menu du navigateur. Sur iPhone/iPad, utilisez **Partager > Sur l’écran d’accueil** dans Safari.
+
 ## Sauvegarder les TLA
 
 Les TLA modifiés sont enregistrés immédiatement comme brouillons dans le navigateur ; une fermeture de page déclenche aussi une dernière tentative de sauvegarde. Ils restent disponibles après fermeture de l’app et redémarrage de l’ordinateur, dans le même navigateur. Une coupure de courant pendant l’écriture IndexedDB peut toutefois empêcher la toute dernière modification d’être conservée. **Sauvegarder** télécharge une archive ZIP de la bibliothèque complète, nommée avec le titre du TLA ouvert ; les dossiers et leur classement sont inclus. **Restaurer** fusionne l’archive avec la bibliothèque locale ; les TLA ou dossiers portant le même identifiant sont remplacés après confirmation, les autres sont conservés. Pour changer de navigateur ou d’appareil, transférez la sauvegarde ZIP.
