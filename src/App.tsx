@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Archive, ArrowDownToLine, Check, ChevronDown, FilePlus2, Folder, ImagePlus, LayoutGrid, Menu, Mic, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
 } from 'lucide-react'
-import { createEmptyBoard, categoryColors, type Board, type Cell, type FitzgeraldCategory, type PictogramResult } from './types'
+import { createEmptyBoard, type Board, type Cell, type FitzgeraldCategory, type PictogramResult } from './types'
 import { moveOrSwapCells, placeWords, resizeBoard } from './domain/layout'
 import { suggestFolderId } from './domain/classification'
 import { searchPictograms } from './services/arasaac'
@@ -34,6 +34,7 @@ function App() {
   const [results, setResults] = useState<PictogramResult[]>([])
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saving')
   const [mobileNav, setMobileNav] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
@@ -45,15 +46,12 @@ function App() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const backupInputRef = useRef<HTMLInputElement>(null)
   const searchAbort = useRef<AbortController | null>(null)
 
   useEffect(() => {
     void Promise.all([boardRepository.list(), folderRepository.list()]).then(([savedBoards, savedFolders]) => {
-      if (savedBoards.length) {
-        const latest = [...savedBoards].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
-        setBoard(latest)
-        setBoards(savedBoards)
-      }
+      setBoards(savedBoards)
       if (savedFolders.length) setFolders(savedFolders)
       setSaveState('saved')
     }).catch(() => setSaveState('error'))
@@ -199,6 +197,55 @@ function App() {
     reader.readAsDataURL(file)
   }
 
+  const downloadBackup = async () => {
+    try {
+      const savedBoards = [...boards.filter((savedBoard) => savedBoard.id !== board.id), board]
+      const { exportBackupFile } = await import('./services/backup')
+      await exportBackupFile(savedBoards, folders)
+      setError('')
+      setSuccess('Sauvegarde téléchargée.')
+    } catch {
+      setError('La sauvegarde n’a pas pu être créée. Réessayez.')
+      setSuccess('')
+    }
+  }
+
+  const restoreBackup = async (file: File) => {
+    try {
+      const { readBackupFile } = await import('./services/backup')
+      const backup = await readBackupFile(file)
+      const boardIds = new Set([...boards, board].map((savedBoard) => savedBoard.id))
+      const folderIds = new Set(folders.map((folder) => folder.id))
+      const boardConflicts = backup.boards.filter((savedBoard) => boardIds.has(savedBoard.id)).length
+      const folderConflicts = backup.folders.filter((folder) => folderIds.has(folder.id)).length
+      if ((boardConflicts || folderConflicts) && !window.confirm(`Cette sauvegarde remplacera ${boardConflicts} TLA et ${folderConflicts} dossier(s) déjà présents. Les autres données seront conservées. Continuer ?`)) return
+      await boardRepository.restore(backup.boards, backup.folders)
+      setBoards((current) => {
+        const merged = new Map(current.map((savedBoard) => [savedBoard.id, savedBoard]))
+        backup.boards.forEach((savedBoard) => merged.set(savedBoard.id, savedBoard))
+        return [...merged.values()].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      })
+      setFolders((current) => {
+        const merged = new Map(current.map((folder) => [folder.id, folder]))
+        backup.folders.forEach((folder) => merged.set(folder.id, folder))
+        return [...merged.values()]
+      })
+      const newestRestoredBoard = [...backup.boards].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0]
+      if (newestRestoredBoard) {
+        setBoard(newestRestoredBoard)
+        setHistory([])
+        setFuture([])
+        setSelectedCellId(null)
+        setPanel('none')
+      }
+      setError('')
+      setSuccess(`Restauration terminée : ${backup.boards.length} TLA et ${backup.folders.length} dossiers ajoutés ou actualisés. Les autres données ont été conservées.`)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'La restauration a échoué. Aucune donnée n’a été remplacée.')
+      setSuccess('')
+    }
+  }
+
   const toggleSpeech = () => {
     const SpeechRecognition = (window as Window & { SpeechRecognition?: new () => { lang: string; start: () => void; stop: () => void; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null } }).SpeechRecognition
     if (!SpeechRecognition) { setError('La dictée n’est pas disponible dans ce navigateur. Utilisez le clavier.'); return }
@@ -267,6 +314,8 @@ function App() {
       <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header"><span>Bibliothèque</span><button className="icon-button close-mobile" onClick={() => setMobileNav(false)}><X size={18} /></button></div>
         <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA <span className="shortcut">⌘ N</span></button>
+        <div className="backup-actions"><button type="button" onClick={() => void downloadBackup()}><ArrowDownToLine size={13} /> Sauvegarder</button><button type="button" onClick={() => backupInputRef.current?.click()}><Upload size={13} /> Restaurer</button></div>
+        <input ref={backupInputRef} type="file" accept=".zip,application/zip" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void restoreBackup(file); event.target.value = '' }} />
         <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Récents <span className="nav-count">{libraryBoards.length}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button></nav>
         <div className="sidebar-section"><div className="section-label">Dossiers <button className="mini-button" title="Ajouter un dossier" aria-label="Ajouter un dossier" onClick={() => setIsCreatingFolder(true)}><Plus size={15} /></button></div>{isCreatingFolder && <form className="new-folder-form" onSubmit={(event) => { event.preventDefault(); void createFolder() }}><input autoFocus value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} placeholder="Nom du dossier" aria-label="Nom du dossier" /><button type="submit" disabled={!newFolderName.trim()}><Check size={14} /></button><button type="button" onClick={() => { setIsCreatingFolder(false); setNewFolderName('') }}><X size={14} /></button></form>}{folders.map((folder) => <div className={`folder-row ${folder.parentId ? 'nested' : ''}`} key={folder.id}><button className={`folder-item ${libraryFilter === folder.id ? 'selected' : ''}`} onClick={() => { setLibraryFilter(folder.id); setMobileNav(false) }}><Folder size={15} />{folder.name}</button><span className="folder-actions"><button title={`Renommer ${folder.name}`} aria-label={`Renommer ${folder.name}`} onClick={() => void renameFolder(folder)}><Pencil size={12} /></button><button title={`Supprimer ${folder.name}`} aria-label={`Supprimer ${folder.name}`} onClick={() => void removeFolder(folder)}><Trash2 size={12} /></button></span></div>)}</div>
         <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.</p>}</div>
@@ -275,7 +324,7 @@ function App() {
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
       <main className="main-content">
         <div className="editor-header"><div><div className="eyebrow">Brouillon · A4 paysage</div><input className="title-input" value={board.title} onChange={(event) => updateBoard({ ...board, title: event.target.value })} aria-label="Titre du TLA" /></div><div className="editor-tools"><label className="select-control"><span>Grille</span><select value={`${board.columns}x${board.rows}`} onChange={(event) => changeSize(event.target.value)}><option value="5x4">5 × 4</option><option value="6x4">6 × 4</option><option value="4x3">4 × 3</option><option value="6x5">6 × 5</option></select><ChevronDown size={14} /></label><label className="select-control folder-control"><span>Dossier</span><select aria-label="Dossier du TLA" value={board.folderId ?? ''} onChange={(event) => updateBoard({ ...board, folderId: event.target.value || undefined })}><option value="">Sans dossier</option>{folders.map((folder) => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select><ChevronDown size={14} /></label><button className="toolbar-button auto-classify" title="Proposer un dossier selon le titre et les mots" onClick={classifyAutomatically}><Sparkles size={14} /> Classer</button></div></div>
-        {error && <div className="notice error-notice"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}
+        {error && <div className="notice error-notice"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}{success && <div className="notice success-notice"><span>{success}</span><button onClick={() => setSuccess('')}><X size={15} /></button></div>}
         <div className="canvas-wrap"><div className="sheet" ref={sheetRef}><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => openSearch(cell.id)} onEdit={(patch) => updateCell(cell.id, patch)} onDragStart={() => setDraggedId(cell.id)} onDrop={() => { if (draggedId) updateBoard(moveOrSwapCells(board, draggedId, cell.id)); setDraggedId(null) }} onDelete={() => updateCell(cell.id, { source: null, imageData: undefined, pictogramId: undefined, label: '', favorite: false })} />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div>
         {board.overflowWords.length > 0 && <div className="overflow-notice"><strong>{board.overflowWords.length} mot{board.overflowWords.length > 1 ? 's' : ''} en attente</strong><span>{board.overflowWords.join(' · ')}</span><button onClick={() => setPanel('list')}>Revoir la sélection</button></div>}
         <div className="bottom-hint"><span><span className="key-hint">+</span> Ajouter un pictogramme</span><span>Glissez une case sur une autre pour les permuter</span></div>
@@ -289,7 +338,7 @@ function App() {
 }
 
 function CellCard({ cell, onOpen, onEdit, onDragStart, onDrop, onDelete, preview = false }: { cell: Cell; onOpen: () => void; onEdit: (patch: Partial<Cell>) => void; onDragStart: () => void; onDrop: () => void; onDelete: () => void; preview?: boolean }) {
-  return <article className={`cell-card ${cell.label ? 'filled' : 'empty'} ${cell.favorite ? 'is-favorite' : ''}`} style={{ borderColor: cell.label ? cell.colorOverride ?? categoryColors[cell.category] : undefined }} draggable={Boolean(cell.label) && !preview} onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
+  return <article className={`cell-card ${cell.label ? 'filled' : 'empty'} ${cell.favorite ? 'is-favorite' : ''}`} draggable={Boolean(cell.label) && !preview} onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
     {cell.label ? <><button className="cell-main" onClick={onOpen} aria-label={`Modifier ${cell.label}`}>{cell.imageData ? <img src={cell.imageData} alt="" /> : <div className="image-placeholder"><ImagePlus size={25} /></div>}<span>{cell.label}</span></button>{!preview && <div className="cell-actions"><button title="Favori" onClick={() => onEdit({ favorite: !cell.favorite })}>★</button><button title="Effacer" onClick={onDelete}><Trash2 size={13} /></button></div>}</> : <button className="empty-add" onClick={onOpen}><span className="plus-circle"><Plus size={22} /></span><span>Ajouter</span></button>}
   </article>
 }

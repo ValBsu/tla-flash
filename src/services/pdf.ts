@@ -1,19 +1,8 @@
 import { jsPDF } from 'jspdf'
 import { saveAs } from 'file-saver'
-import { categoryColors, type Board, type Cell } from '../types'
+import { type Board, type Cell } from '../types'
 
 const pageDimensions = (board: Board) => board.pageSize === 'A3' ? { width: 420, height: 297 } : { width: 297, height: 210 }
-
-const hexToRgb = (hex: string) => {
-  const value = hex.replace('#', '')
-  const normalized = value.length === 3 ? value.split('').map((part) => `${part}${part}`).join('') : value
-  const numeric = Number.parseInt(normalized, 16)
-  return {
-    r: (numeric >> 16) & 255,
-    g: (numeric >> 8) & 255,
-    b: numeric & 255,
-  }
-}
 
 type PdfImage = string | HTMLImageElement
 
@@ -92,23 +81,14 @@ export async function exportBoardPdf(_element: HTMLElement, board: Board, downlo
   doc.text(`${board.pageSize} · paysage`, width - margin, margin + 5.5, { align: 'right' })
 
   board.cells.forEach((cell, index) => {
+    if (!cell.label) return
     const x = margin + cell.column * (cellWidth + gap)
     const y = margin + titleHeight + cell.row * (cellHeight + gap)
-    const baseColor = cell.colorOverride ?? categoryColors[cell.category] ?? '#96a0aa'
-    const border = hexToRgb(baseColor)
-    const filled = cell.label ? [255, 255, 255] : [250, 252, 250]
 
-    doc.setDrawColor(border.r, border.g, border.b)
-    doc.setFillColor(filled[0], filled[1], filled[2])
-    doc.setLineWidth(cell.label ? 0.7 : 0.5)
+    doc.setDrawColor(0, 0, 0)
+    doc.setFillColor(255, 255, 255)
+    doc.setLineWidth(0.7)
     doc.roundedRect(x, y, cellWidth, cellHeight, 2, 2, 'FD')
-
-    if (!cell.label) {
-      doc.setDrawColor(190, 202, 196)
-      doc.setLineWidth(0.35)
-      doc.line(x + cellWidth * 0.32, y + cellHeight / 2, x + cellWidth * 0.68, y + cellHeight / 2)
-      doc.line(x + cellWidth / 2, y + cellHeight * 0.32, x + cellWidth / 2, y + cellHeight * 0.68)
-    }
 
     const image = imageCache[index]
     if (image) fitImage(doc, image, x + 2.4, y + 2.4, cellWidth - 4.8, cellHeight * 0.68)
