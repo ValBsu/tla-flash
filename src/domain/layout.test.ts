@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createEmptyBoard } from '../types'
 import { moveOrSwapCells, placeWords, resizeBoard } from './layout'
-import { suggestFolderId } from './classification'
 
 describe('moteur de placement TLA', () => {
   it('place les mots et expose le débordement sans supprimer silencieusement', () => {
@@ -22,14 +21,5 @@ describe('moteur de placement TLA', () => {
     const board = placeWords(createEmptyBoard(1, 2), ['gauche', 'droite'])
     const result = moveOrSwapCells(board, board.cells[0].id, board.cells[1].id)
     expect(result.cells.map((cell) => cell.label)).toEqual(['droite', 'gauche'])
-  })
-
-  it('propose un dossier à partir du thème du tableau', () => {
-    const board = placeWords(createEmptyBoard(1, 2), ['pinceau', 'couleur'])
-    const folderId = suggestFolderId({ ...board, title: 'Atelier peinture' }, [
-      { id: 'peinture', name: 'Peinture' },
-      { id: 'cuisine', name: 'Cuisine' },
-    ])
-    expect(folderId).toBe('peinture')
   })
 })

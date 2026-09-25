@@ -37,7 +37,6 @@ export interface Board {
 export interface Folder {
   id: string
   name: string
-  parentId?: string
 }
 
 export interface PictogramResult {

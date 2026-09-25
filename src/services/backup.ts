@@ -10,6 +10,8 @@ export interface BackupData {
   folders: Folder[]
 }
 
+type BackupInput = Omit<BackupData, 'folders'> & { folders?: Folder[] }
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -50,25 +52,33 @@ const isBoard = (value: unknown): value is Board => {
     && typeof value.updatedAt === 'string'
 }
 
-const isFolder = (value: unknown): value is Folder => {
-  if (!isRecord(value)) return false
-  return typeof value.id === 'string'
-    && typeof value.name === 'string'
-    && (value.parentId === undefined || typeof value.parentId === 'string')
-}
+const isFolder = (value: unknown): value is Folder =>
+  isRecord(value) && typeof value.id === 'string' && typeof value.name === 'string'
 
-export const isBackupData = (value: unknown): value is BackupData => {
+export const isBackupData = (value: unknown): value is BackupInput => {
   if (!isRecord(value)) return false
   return value.format === 'tla-studio-backup'
     && value.version === 1
     && typeof value.exportedAt === 'string'
     && Array.isArray(value.boards)
     && value.boards.every(isBoard)
-    && Array.isArray(value.folders)
-    && value.folders.every(isFolder)
+    && (value.folders === undefined || (Array.isArray(value.folders) && value.folders.every(isFolder)))
 }
 
-export async function exportBackupFile(boards: Board[], folders: Folder[]): Promise<void> {
+export const createBackupFilename = (title: string): string => {
+  const safeTitle = title.trim()
+    .replace(/[<>:"/\\|?*]/g, '-')
+    .replace(/\s+/g, ' ')
+    .split('')
+    .filter((character) => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127)
+    .join('')
+    .replace(/[. ]+$/g, '')
+    .slice(0, 100)
+    .trim()
+  return `${safeTitle || 'Mon TLA'}.zip`
+}
+
+export async function exportBackupFile(boards: Board[], title: string, folders: Folder[]): Promise<void> {
   const backup: BackupData = {
     format: 'tla-studio-backup',
     version: 1,
@@ -79,7 +89,7 @@ export async function exportBackupFile(boards: Board[], folders: Folder[]): Prom
   const zip = new JSZip()
   zip.file('backup.json', JSON.stringify(backup))
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
-  saveAs(blob, `tla-studio-sauvegarde-${new Date().toISOString().slice(0, 10)}.zip`)
+  saveAs(blob, createBackupFilename(title))
 }
 
 export async function readBackupFile(file: File): Promise<BackupData> {
@@ -100,5 +110,8 @@ export async function readBackupFile(file: File): Promise<BackupData> {
     throw new Error('Le contenu de la sauvegarde est illisible.')
   }
   if (!isBackupData(content)) throw new Error('Le format de cette sauvegarde n’est pas reconnu ou est incomplet.')
-  return content
+  return {
+    ...content,
+    folders: content.folders ?? [],
+  }
 }

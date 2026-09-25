@@ -19,6 +19,10 @@ Le workflow `.github/workflows/deploy.yml` teste, construit et publie automatiqu
 
 URL attendue : `https://valbsu.github.io/tla-flash/`.
 
+## Sauvegarder les TLA
+
+Les TLA et dossiers sont enregistrés automatiquement dans le navigateur. Ils restent disponibles après fermeture de l’app et redémarrage de l’ordinateur, dans le même navigateur. **Sauvegarder** télécharge une archive ZIP de la bibliothèque complète, nommée avec le titre du TLA ouvert ; les dossiers et leur classement sont inclus. **Restaurer** fusionne l’archive avec la bibliothèque locale ; les TLA ou dossiers portant le même identifiant sont remplacés après confirmation, les autres sont conservés. Pour changer de navigateur ou d’appareil, transférez la sauvegarde ZIP.
+
 ## Commandes
 
 ```bash
