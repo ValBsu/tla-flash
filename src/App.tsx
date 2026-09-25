@@ -20,6 +20,7 @@ function App() {
   const [boards, setBoards] = useState<Board[]>([])
   const [folders, setFolders] = useState<TlaFolder[]>([])
   const editableBoardIds = useRef(new Set<string>())
+  const deletedBoardIds = useRef(new Set<string>())
   const boardRef = useRef(board)
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('recent')
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
@@ -57,10 +58,11 @@ function App() {
 
   useEffect(() => {
     boardRef.current = board
-    if (!editableBoardIds.current.has(board.id)) return
+    if (!editableBoardIds.current.has(board.id) || deletedBoardIds.current.has(board.id)) return
     setSaveState('saving')
     const next = { ...board, status: 'draft' as const, updatedAt: new Date().toISOString() }
     void boardRepository.save(next).then(() => {
+      if (deletedBoardIds.current.has(next.id)) return
       setBoards((current) => [...current.filter((item) => item.id !== next.id), next].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
       setSaveState('saved')
     }).catch(() => setSaveState('error'))
@@ -89,12 +91,12 @@ function App() {
 
   const updateCell = (cellId: string, patch: Partial<Cell>) => updateBoard({ ...board, cells: board.cells.map((cell) => cell.id === cellId ? { ...cell, ...patch } : cell) })
   const selectedCell = board.cells.find((cell) => cell.id === selectedCellId)
-  const libraryBoards = boards.some((item) => item.id === board.id) ? boards : [...boards, board]
+  const libraryBoards = boards
   const selectedFolderId = libraryFilter.startsWith('folder:') ? libraryFilter.slice('folder:'.length) : null
   const visibleBoards = libraryBoards
     .filter((item) => libraryFilter === 'recent' || (libraryFilter === 'drafts' && item.status === 'draft') || (libraryFilter === 'favorites' && item.cells.some((cell) => cell.favorite)) || (selectedFolderId !== null && item.folderId === selectedFolderId))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, libraryFilter === 'recent' ? 2 : 8)
+    .slice(0, libraryFilter === 'recent' ? 2 : libraryFilter === 'drafts' ? undefined : 8)
   const libraryLabel = selectedFolderId ? folders.find((folder) => folder.id === selectedFolderId)?.name ?? 'Dossiers' : libraryFilter === 'recent' ? 'TLA récents' : libraryFilter === 'drafts' ? 'Brouillons' : libraryFilter === 'favorites' ? 'Favoris' : 'Choisir un dossier'
   const openSavedBoard = (savedBoard: Board) => {
     setBoard(savedBoard)
@@ -128,6 +130,26 @@ function App() {
   }
 
   const createBoard = () => { const next = createEmptyBoard(board.rows, board.columns); updateBoard(next); setSelectedCellId(null); setPanel('none') }
+  const removeBoard = async (savedBoard: Board) => {
+    if (!window.confirm(`Supprimer définitivement « ${savedBoard.title} » ? Cette action est irréversible.`)) return
+    deletedBoardIds.current.add(savedBoard.id)
+    editableBoardIds.current.delete(savedBoard.id)
+    try {
+      await boardRepository.remove(savedBoard.id)
+      setBoards((current) => current.filter((item) => item.id !== savedBoard.id))
+      if (board.id === savedBoard.id) {
+        setBoard(createEmptyBoard(board.rows, board.columns))
+        setHistory([])
+        setFuture([])
+        setSelectedCellId(null)
+      }
+      setSuccess(`« ${savedBoard.title} » a été supprimé.`)
+      setError('')
+    } catch {
+      setError(`Impossible de supprimer « ${savedBoard.title} ». Réessaie.`)
+      setSuccess('')
+    }
+  }
   const createFolder = async () => {
     const name = newFolderName.trim()
     if (!name) return
@@ -271,6 +293,7 @@ function App() {
       const boardConflicts = backup.boards.filter((savedBoard) => boardIds.has(savedBoard.id)).length
       const folderConflicts = backup.folders.filter((folder) => folderIds.has(folder.id)).length
       if ((boardConflicts || folderConflicts) && !window.confirm(`Cette sauvegarde remplacera ${boardConflicts} TLA et ${folderConflicts} dossier(s) déjà présents. Les autres éléments seront conservés. Continuer ?`)) return
+      backup.boards.forEach((savedBoard) => deletedBoardIds.current.delete(savedBoard.id))
       await boardRepository.restore(backup.boards, backup.folders)
       setBoards((current) => {
         const merged = new Map(current.map((savedBoard) => [savedBoard.id, savedBoard]))
@@ -369,7 +392,7 @@ function App() {
         <input ref={backupInputRef} type="file" accept=".zip,application/zip" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void restoreBackup(file); event.target.value = '' }} />
         <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Récents <span className="nav-count">{libraryBoards.length}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button><button className={`nav-item ${libraryFilter === 'folders' || selectedFolderId !== null ? 'active' : ''}`} onClick={() => setLibraryFilter('folders')}><Folder size={17} /> Dossiers <span className="nav-count">{folders.length}</span></button></nav>
         {(libraryFilter === 'folders' || selectedFolderId !== null) && <div className="sidebar-section"><div className="section-label"><span>Dossiers personnalisés</span><button className="mini-button" title="Créer un dossier" aria-label="Créer un dossier" onClick={() => setIsCreatingFolder(true)}><Plus size={15} /></button></div>{isCreatingFolder && <form className="new-folder-form" onSubmit={(event) => { event.preventDefault(); void createFolder() }}><input autoFocus value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} placeholder="Nom du dossier" aria-label="Nom du dossier" /><button type="submit" disabled={!newFolderName.trim()}><Check size={14} /></button><button type="button" onClick={() => { setIsCreatingFolder(false); setNewFolderName('') }}><X size={14} /></button></form>}{folders.length ? [...folders].sort((left, right) => left.name.localeCompare(right.name, 'fr')).map((folder) => <div className="folder-row" key={folder.id}><button className={`folder-item ${selectedFolderId === folder.id ? 'selected' : ''}`} onClick={() => { setLibraryFilter(`folder:${folder.id}`); setMobileNav(false) }}><Folder size={15} />{folder.name}<small className="nav-count">{libraryBoards.filter((item) => item.folderId === folder.id).length}</small></button><span className="folder-actions"><button title={`Renommer ${folder.name}`} aria-label={`Renommer ${folder.name}`} onClick={() => void renameFolder(folder)}><Pencil size={12} /></button><button title={`Supprimer ${folder.name}`} aria-label={`Supprimer ${folder.name}`} onClick={() => void removeFolder(folder)}><Trash2 size={12} /></button></span></div>) : <p className="saved-empty">Crée un dossier pour retrouver facilement tes TLA.</p>}</div>}
-        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} key={savedBoard.id} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>) : <p className="saved-empty">{libraryFilter === 'folders' ? 'Choisis un dossier pour afficher ses TLA.' : 'Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.'}</p>}</div>
+        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <div className="saved-board-row" key={savedBoard.id}><button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>{libraryFilter === 'drafts' && <button className="saved-board-delete" type="button" title={`Supprimer ${savedBoard.title}`} aria-label={`Supprimer ${savedBoard.title}`} onClick={() => void removeBoard(savedBoard)}><Trash2 size={15} /></button>}</div>) : <p className="saved-empty">{libraryFilter === 'folders' ? 'Choisis un dossier pour afficher ses TLA.' : 'Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.'}</p>}</div>
         <div className="sidebar-footer"><div className="local-note"><span className="local-icon"><Check size={13} /></span><div><strong>Local à cet appareil</strong><small>Vos données restent privées</small></div></div></div>
       </aside>
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
@@ -379,7 +402,7 @@ function App() {
         {error && <div className="notice error-notice"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}{success && <div className="notice success-notice"><span>{success}</span><button onClick={() => setSuccess('')}><X size={15} /></button></div>}
         <div className="canvas-wrap"><div className="sheet" ref={sheetRef}><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => openSearch(cell.id)} onEdit={(patch) => updateCell(cell.id, patch)} onDragStart={() => setDraggedId(cell.id)} onDrop={() => { if (draggedId) updateBoard(moveOrSwapCells(board, draggedId, cell.id)); setDraggedId(null) }} onDelete={() => updateCell(cell.id, { source: null, imageData: undefined, pictogramId: undefined, label: '', favorite: false })} />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div>
         {board.overflowWords.length > 0 && <div className="overflow-notice"><strong>{board.overflowWords.length} mot{board.overflowWords.length > 1 ? 's' : ''} en attente</strong><span>{board.overflowWords.join(' · ')}</span><button onClick={() => setPanel('list')}>Revoir la sélection</button></div>}
-        <div className="bottom-hint"><span><span className="key-hint">+</span> Ajouter un pictogramme</span><span>Glissez une case sur une autre pour les permuter</span></div>
+        <div className="bottom-hint"><button className="quick-new-board" type="button" onClick={createBoard}><span className="key-hint"><Plus size={14} /></span> Nouveau TLA vierge</button><span>Le TLA en cours reste dans les brouillons</span></div>
       </main>
     </div>
     {panel === 'search' && <SearchPanel term={searchTerm} setTerm={setSearchTerm} results={results} state={searchState} error={error} onSearch={() => void runSearch()} onSpeech={toggleSpeech} speaking={isSpeaking} onChoose={choosePictogram} onClose={() => setPanel('none')} onUpload={() => fileInputRef.current?.click()} />}
