@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Archive, ArrowDownToLine, Check, ChevronDown, FilePlus2, Folder, ImagePlus, Languages, LayoutGrid, Menu, Mic, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
+  Archive, ArrowDownToLine, Bold, Check, ChevronDown, Contrast, FilePlus2, Folder, ImagePlus, Languages, LayoutGrid, Menu, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
 } from 'lucide-react'
 import { createEmptyBoard, type Board, type Cell, type FitzgeraldCategory, type Folder as TlaFolder, type PictogramResult } from './types'
 import { moveOrSwapCells, placeWords, resizeBoard } from './domain/layout'
@@ -10,7 +10,7 @@ import { exportBoardPdf } from './services/pdf'
 import './App.css'
 
 type BatchProposal = { word: string; result?: PictogramResult; state: 'waiting' | 'loading' | 'ready' | 'empty' | 'error' }
-type LibraryFilter = 'recent' | 'drafts' | 'favorites' | 'folders' | `folder:${string}`
+type LibraryFilter = 'recent' | 'drafts' | 'favorites' | `folder:${string}`
 type TranslationDraft = { title: string; cells: { id: string; original: string; translated: string }[]; overflowWords: string[] }
 
 function App() {
@@ -24,6 +24,8 @@ function App() {
   const boardRef = useRef(board)
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('recent')
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
+  const [selectedCellIds, setSelectedCellIds] = useState<string[]>([])
+  const [sidebarTab, setSidebarTab] = useState<'library' | 'edit'>('edit')
   const [panel, setPanel] = useState<'none' | 'search' | 'list' | 'preview' | 'translation'>('none')
   const [searchTerm, setSearchTerm] = useState('')
   const [results, setResults] = useState<PictogramResult[]>([])
@@ -33,14 +35,13 @@ function App() {
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saving')
   const [mobileNav, setMobileNav] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
-  const [listText, setListText] = useState('manger\nboire\nassiette\ncouteau\nfourchette\nserviette')
+  const [listText, setListText] = useState('')
   const [batchProposals, setBatchProposals] = useState<BatchProposal[]>([])
   const [batchState, setBatchState] = useState<'idle' | 'loading' | 'ready'>('idle')
   const [translationSource, setTranslationSource] = useState<Board | null>(null)
   const [translationDraft, setTranslationDraft] = useState<TranslationDraft | null>(null)
   const [translationState, setTranslationState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [translationError, setTranslationError] = useState('')
-  const [isSpeaking, setIsSpeaking] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -91,24 +92,89 @@ function App() {
 
   const updateCell = (cellId: string, patch: Partial<Cell>) => updateBoard({ ...board, cells: board.cells.map((cell) => cell.id === cellId ? { ...cell, ...patch } : cell) })
   const selectedCell = board.cells.find((cell) => cell.id === selectedCellId)
+  const selectedCells = board.cells.filter((cell) => selectedCellIds.includes(cell.id))
+  const selectedTextSize = selectedCells[0]?.textSize ?? 'normal'
+  const selectedTextCase = selectedCells[0]?.textCase ?? 'uppercase'
+  const selectedBold = selectedCells.every((cell) => cell.bold !== false)
+  const updateSelectedCells = (patch: Partial<Cell>) => {
+    if (!selectedCellIds.length) return
+    updateBoard({ ...board, cells: board.cells.map((cell) => selectedCellIds.includes(cell.id) ? { ...cell, ...patch } : cell) })
+  }
   const libraryBoards = boards
+  const pageBoards = boards.filter((item) => item.id !== board.id).concat(board).sort((left, right) => left.createdAt.localeCompare(right.createdAt))
   const selectedFolderId = libraryFilter.startsWith('folder:') ? libraryFilter.slice('folder:'.length) : null
   const visibleBoards = libraryBoards
     .filter((item) => libraryFilter === 'recent' || (libraryFilter === 'drafts' && item.status === 'draft') || (libraryFilter === 'favorites' && item.cells.some((cell) => cell.favorite)) || (selectedFolderId !== null && item.folderId === selectedFolderId))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, libraryFilter === 'recent' ? 2 : libraryFilter === 'drafts' ? undefined : 8)
-  const libraryLabel = selectedFolderId ? folders.find((folder) => folder.id === selectedFolderId)?.name ?? 'Dossiers' : libraryFilter === 'recent' ? 'TLA récents' : libraryFilter === 'drafts' ? 'Brouillons' : libraryFilter === 'favorites' ? 'Favoris' : 'Choisir un dossier'
+  const libraryLabel = selectedFolderId ? folders.find((folder) => folder.id === selectedFolderId)?.name ?? 'Dossiers' : libraryFilter === 'recent' ? 'Tous les TLA' : libraryFilter === 'drafts' ? 'Brouillons' : 'Favoris'
   const openSavedBoard = (savedBoard: Board) => {
     setBoard(savedBoard)
     setHistory([])
     setFuture([])
     setSelectedCellId(null)
+    setSelectedCellIds([])
+    setSidebarTab('library')
+    setBatchProposals([])
+    setBatchState('idle')
     setPanel('none')
     setMobileNav(false)
   }
 
+  const selectPageCell = (page: Board, cellId: string) => {
+    if (page.id !== board.id) {
+      setBoard(page)
+      setHistory([])
+      setFuture([])
+      setSelectedCellIds([cellId])
+    } else {
+      setSelectedCellIds((current) => current.includes(cellId) ? current.filter((id) => id !== cellId) : [...current, cellId])
+    }
+    setSelectedCellId(cellId)
+    setSidebarTab('edit')
+    setMobileNav(false)
+  }
+
   const openSearch = (cellId: string) => {
-    setSelectedCellId(cellId); setSearchTerm(board.cells.find((cell) => cell.id === cellId)?.label ?? ''); setResults([]); setSearchState('idle'); setPanel('search'); setError('')
+    setSelectedCellId(cellId)
+    setSelectedCellIds([cellId])
+    setSidebarTab('edit')
+    setSearchTerm(board.cells.find((cell) => cell.id === cellId)?.label ?? '')
+    setResults([])
+    setSearchState('idle')
+    setPanel('search')
+    setError('')
+  }
+
+  const openPageSearch = (page: Board, cellId: string) => {
+    if (page.id !== board.id) {
+      setBoard(page)
+      setHistory([])
+      setFuture([])
+    }
+    setSelectedCellId(cellId)
+    setSelectedCellIds([cellId])
+    setSidebarTab('edit')
+    setSearchTerm(page.cells.find((cell) => cell.id === cellId)?.label ?? '')
+    setResults([])
+    setSearchState('idle')
+    setPanel('search')
+    setError('')
+  }
+
+  const updatePageBoard = (page: Board, next: Board) => {
+    if (page.id === board.id) updateBoard(next)
+    else {
+      editableBoardIds.current.add(page.id)
+      setBoard({ ...next, status: 'draft' })
+      setHistory([page])
+      setFuture([])
+      setSelectedCellId(null)
+      setSelectedCellIds([])
+    }
+  }
+
+  const updatePageCell = (page: Board, cellId: string, patch: Partial<Cell>) => {
+    updatePageBoard(page, { ...page, cells: page.cells.map((cell) => cell.id === cellId ? { ...cell, ...patch } : cell) })
   }
 
   const runSearch = async (term = searchTerm) => {
@@ -125,11 +191,23 @@ function App() {
     if (!selectedCellId) return
     const lower = `${result.label} ${searchTerm}`.toLocaleLowerCase('fr-FR')
     const category: FitzgeraldCategory = /manger|boire|faire|aller|prendre/.test(lower) ? 'verbs' : /je|tu|il|elle|nous|vous/.test(lower) ? 'people' : 'nouns'
-    updateCell(selectedCellId, { source: 'arasaac', pictogramId: result.id, imageData: result.imageUrl, label: searchTerm || result.label, searchTerm, category })
+    updateCell(selectedCellId, { source: 'arasaac', pictogramId: result.id, imageData: result.imageUrl, label: (searchTerm || result.label).toLocaleUpperCase('fr-FR'), searchTerm, category })
     setPanel('none')
   }
 
-  const createBoard = () => { const next = createEmptyBoard(board.rows, board.columns); updateBoard(next); setSelectedCellId(null); setPanel('none') }
+  const createBoard = () => {
+    const next = createEmptyBoard(board.rows, board.columns)
+    editableBoardIds.current.add(next.id)
+    setBoard(next)
+    setHistory([])
+    setFuture([])
+    setSelectedCellId(null)
+    setSelectedCellIds([])
+    setSidebarTab('library')
+    setBatchProposals([])
+    setBatchState('idle')
+    setPanel('none')
+  }
   const removeBoard = async (savedBoard: Board) => {
     if (!window.confirm(`Supprimer définitivement « ${savedBoard.title} » ? Cette action est irréversible.`)) return
     deletedBoardIds.current.add(savedBoard.id)
@@ -138,10 +216,11 @@ function App() {
       await boardRepository.remove(savedBoard.id)
       setBoards((current) => current.filter((item) => item.id !== savedBoard.id))
       if (board.id === savedBoard.id) {
-        setBoard(createEmptyBoard(board.rows, board.columns))
+        setBoard(boards.find((item) => item.id !== savedBoard.id) ?? createEmptyBoard(board.rows, board.columns))
         setHistory([])
         setFuture([])
         setSelectedCellId(null)
+        setSelectedCellIds([])
       }
       setSuccess(`« ${savedBoard.title} » a été supprimé.`)
       setError('')
@@ -175,9 +254,8 @@ function App() {
     setBoards((current) => current.map((item) => unfiledBoards.find((updated) => updated.id === item.id) ?? item))
     if (board.folderId === folder.id) setBoard((current) => ({ ...current, folderId: undefined }))
     setFolders((current) => current.filter((item) => item.id !== folder.id))
-    if (selectedFolderId === folder.id) setLibraryFilter('folders')
+    if (selectedFolderId === folder.id) setLibraryFilter('recent')
   }
-  const changeSize = (value: string) => { const [columns, rows] = value.split('x').map(Number); updateBoard(resizeBoard(board, rows, columns)) }
   const undo = () => { const previous = history.at(-1); if (!previous) return; setFuture((current) => [...current, board]); setBoard(previous); setHistory((current) => current.slice(0, -1)) }
   const redo = () => { const next = future.at(-1); if (!next) return; setHistory((current) => [...current, board]); setBoard(next); setFuture((current) => current.slice(0, -1)) }
   const normalizeList = () => listText.split(/[\n,;]+/).map((word) => word.trim()).filter(Boolean)
@@ -207,7 +285,7 @@ function App() {
       if (!proposal?.result) return cell
       const lower = `${proposal.word} ${proposal.result.label}`.toLocaleLowerCase('fr-FR')
       const category: FitzgeraldCategory = /manger|boire|faire|aller|prendre/.test(lower) ? 'verbs' : /je|tu|il|elle|nous|vous/.test(lower) ? 'people' : 'nouns'
-      return { ...cell, source: 'arasaac' as const, pictogramId: proposal.result.id, imageData: proposal.result.imageUrl, label: proposal.word, searchTerm: proposal.word, category }
+      return { ...cell, source: 'arasaac' as const, pictogramId: proposal.result.id, imageData: proposal.result.imageUrl, label: proposal.word.toLocaleUpperCase('fr-FR'), searchTerm: proposal.word, category }
     })
     updateBoard({ ...next, cells })
     setPanel('none')
@@ -228,7 +306,7 @@ function App() {
       const translated = await translateTexts([source.title, ...filledCells.map((cell) => cell.label), ...source.overflowWords])
       setTranslationDraft({
         title: translated[0] || source.title,
-        cells: filledCells.map((cell, index) => ({ id: cell.id, original: cell.label, translated: translated[index + 1] || cell.label })),
+        cells: filledCells.map((cell, index) => ({ id: cell.id, original: cell.label.toLocaleUpperCase('fr-FR'), translated: (translated[index + 1] || cell.label).toLocaleUpperCase('fr-FR') })),
         overflowWords: source.overflowWords.map((word, index) => translated[filledCells.length + index + 1] || word),
       })
       setTranslationState('ready')
@@ -252,7 +330,7 @@ function App() {
       cells: translationSource.cells.map((cell) => ({
         ...cell,
         id: crypto.randomUUID(),
-        label: translatedCells.get(cell.id) || cell.label,
+        label: (translatedCells.get(cell.id) || cell.label).toLocaleUpperCase('fr-FR'),
       })),
       overflowWords: translationDraft.overflowWords.map((word, index) => word.trim() || translationSource.overflowWords[index]),
     }
@@ -262,12 +340,15 @@ function App() {
     setTranslationSource(null)
     setTranslationDraft(null)
     setTranslationState('idle')
+    setSelectedCellId(null)
+    setSelectedCellIds([])
+    setSidebarTab('library')
   }
 
   const importImage = (file: File) => {
     if (!selectedCellId) return
     const reader = new FileReader()
-    reader.onload = () => updateCell(selectedCellId, { source: 'upload', imageData: String(reader.result), imageMime: file.type, label: selectedCell?.label || file.name.replace(/\.[^.]+$/, ''), category: 'other' })
+    reader.onload = () => updateCell(selectedCellId, { source: 'upload', imageData: String(reader.result), imageMime: file.type, label: (selectedCell?.label || file.name.replace(/\.[^.]+$/, '')).toLocaleUpperCase('fr-FR'), category: 'other' })
     reader.readAsDataURL(file)
   }
 
@@ -321,36 +402,31 @@ function App() {
     }
   }
 
-  const toggleSpeech = () => {
-    const SpeechRecognition = (window as Window & { SpeechRecognition?: new () => { lang: string; start: () => void; stop: () => void; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null } }).SpeechRecognition
-    if (!SpeechRecognition) { setError('La dictée n’est pas disponible dans ce navigateur. Utilisez le clavier.'); return }
-    if (isSpeaking) { setIsSpeaking(false); return }
-    const recognition = new SpeechRecognition(); recognition.lang = 'fr-FR'; setIsSpeaking(true)
-    recognition.onresult = (event) => { const transcript = event.results[0][0].transcript; setSearchTerm(transcript); void runSearch(transcript) }
-    recognition.onend = () => setIsSpeaking(false); recognition.onerror = () => { setError('Micro refusé ou reconnaissance indisponible.'); setIsSpeaking(false) }; recognition.start()
-  }
-
   const printBoard = async () => {
     if (!sheetRef.current) return
+    const printWindow = window.open('about:blank', '_blank')
+    if (!printWindow) {
+      setError('Le navigateur a bloqué l’impression. Le PDF a été téléchargé à la place.')
+      void downloadBoard()
+      return
+    }
     try {
       const blob = await exportBoardPdf(sheetRef.current, board, false)
-      const frame = document.createElement('iframe')
       const url = URL.createObjectURL(blob)
-      frame.title = 'Aperçu d’impression'
-      frame.style.position = 'fixed'
-      frame.style.width = '1px'
-      frame.style.height = '1px'
-      frame.style.right = '0'
-      frame.style.bottom = '0'
-      frame.style.border = '0'
-      frame.onload = () => {
-        frame.contentWindow?.focus()
-        frame.contentWindow?.print()
-        window.setTimeout(() => { URL.revokeObjectURL(url); frame.remove() }, 1000)
-      }
-      frame.src = url
-      document.body.appendChild(frame)
+      printWindow.document.title = `Imprimer ${board.title}`
+      printWindow.addEventListener('load', () => {
+        try {
+          printWindow.focus()
+          printWindow.print()
+          printWindow.addEventListener('afterprint', () => URL.revokeObjectURL(url), { once: true })
+        } catch {
+          setError('L’impression automatique est indisponible. Utilisez Imprimer dans le nouvel onglet PDF.')
+        }
+      }, { once: true })
+      printWindow.location.href = url
+      setError('')
     } catch {
+      printWindow.close()
       setError('L’impression du PDF a échoué. Utilisez Télécharger le PDF puis imprimez le fichier.')
     }
   }
@@ -385,42 +461,136 @@ function App() {
       </div>
     </header>
     <div className="workspace">
-      <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}>
-        <div className="sidebar-header"><span>Bibliothèque</span><button className="icon-button close-mobile" onClick={() => setMobileNav(false)}><X size={18} /></button></div>
-        <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA <span className="shortcut">⌘ N</span></button>
+      <aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''} ${sidebarTab === 'edit' ? 'sidebar-editing' : ''}`}>
+        <div className="sidebar-header"><span>{sidebarTab === 'edit' ? 'Modifier' : 'Bibliothèque'}</span><button className="icon-button close-mobile" onClick={() => setMobileNav(false)}><X size={18} /></button></div>
+        <div className="sidebar-tabs" role="group" aria-label="Panneaux latéraux">
+          <button aria-pressed={sidebarTab === 'edit'} className={sidebarTab === 'edit' ? 'active' : ''} onClick={() => setSidebarTab('edit')}>Modifier <span>{selectedCellIds.length || ''}</span></button>
+          <button aria-pressed={sidebarTab === 'library'} className={sidebarTab === 'library' ? 'active' : ''} onClick={() => setSidebarTab('library')}>Bibliothèque</button>
+        </div>
+        {sidebarTab === 'edit' && <>
+          <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA</button>
+          <button className="sidebar-tool" onClick={() => { setListText(''); setBatchProposals([]); setBatchState('idle'); setPanel('list'); setMobileNav(false) }}><Sparkles size={16} /> Générer depuis une liste</button>
+          <button className="sidebar-tool" onClick={() => void translateBoard()}><Languages size={16} /> Traduire le TLA complet</button>
+        </>}
+        {sidebarTab === 'edit' && <section className="selection-panel">
+          <div className="section-label"><span>Texte · {selectedCells.length}</span><button className="mini-button" title="Effacer la sélection" aria-label="Effacer la sélection" onClick={() => { setSelectedCellIds([]); setSelectedCellId(null) }}><X size={15} /></button></div>
+          {selectedCells.length ? <div className="selection-cell-list">{selectedCells.map((cell) => <label className="selection-cell" key={cell.id}><span>{cell.source === 'arasaac' ? `ARASAAC #${cell.pictogramId}` : cell.source === 'upload' ? 'Image importée' : 'Pictogramme'}</span><input aria-label={`Légende du pictogramme ${cell.label}`} value={cell.textCase === 'lowercase' ? cell.label.toLocaleLowerCase('fr-FR') : cell.label.toLocaleUpperCase('fr-FR')} onChange={(event) => updateCell(cell.id, { label: cell.textCase === 'lowercase' ? event.target.value.toLocaleLowerCase('fr-FR') : event.target.value.toLocaleUpperCase('fr-FR') })} /></label>)}</div> : <p className="saved-empty">Clique sur un pictogramme pour le sélectionner.</p>}
+          <details className="style-panel">
+            <summary><Contrast size={15} /> Style</summary>
+            <div className="style-controls">
+              <button className="selection-action" disabled={!selectedCells.length} onClick={() => updateSelectedCells({ blackAndWhite: !selectedCells.every((cell) => cell.blackAndWhite) })}><Contrast size={15} /> {selectedCells.length && selectedCells.every((cell) => cell.blackAndWhite) ? 'Remettre en couleur' : 'Noir et blanc'}</button>
+              <div className="style-option"><span>Taille du texte</span><div className="style-segments">
+                <button aria-pressed={selectedTextSize === 'small'} disabled={!selectedCells.length} onClick={() => updateSelectedCells({ textSize: 'small' })}>Petit</button>
+                <button aria-pressed={selectedTextSize === 'normal'} disabled={!selectedCells.length} onClick={() => updateSelectedCells({ textSize: 'normal' })}>Normal</button>
+                <button aria-pressed={selectedTextSize === 'large'} disabled={!selectedCells.length} onClick={() => updateSelectedCells({ textSize: 'large' })}>Grand</button>
+              </div></div>
+              <div className="style-option"><span>Casse</span><div className="style-segments">
+                <button aria-pressed={selectedTextCase === 'uppercase'} disabled={!selectedCells.length} onClick={() => updateSelectedCells({ textCase: 'uppercase' })}>MAJ</button>
+                <button aria-pressed={selectedTextCase === 'lowercase'} disabled={!selectedCells.length} onClick={() => updateSelectedCells({ textCase: 'lowercase' })}>min</button>
+              </div></div>
+              <button className="selection-action" aria-pressed={selectedBold} disabled={!selectedCells.length} onClick={() => updateSelectedCells({ bold: !selectedBold })}><Bold size={15} /> Gras</button>
+              <label className="style-color"><span>Couleur du texte</span><input type="color" aria-label="Couleur du texte" disabled={!selectedCells.length} value={selectedCells[0]?.textColor ?? '#263332'} onChange={(event) => updateSelectedCells({ textColor: event.target.value })} /></label>
+            </div>
+          </details>
+          {selectedCells.length === 1 && <button className="selection-action" onClick={() => openSearch(selectedCells[0].id)}><ImagePlus size={15} /> Remplacer le pictogramme</button>}
+        </section>}
         <div className="backup-actions"><button type="button" onClick={() => void downloadBackup()}><ArrowDownToLine size={13} /> Sauvegarder</button><button type="button" onClick={() => backupInputRef.current?.click()}><Upload size={13} /> Restaurer</button></div>
         <input ref={backupInputRef} type="file" accept=".zip,application/zip" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void restoreBackup(file); event.target.value = '' }} />
-        <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Récents <span className="nav-count">{libraryBoards.length}</span></button><button className="nav-item" onClick={() => { setPanel('list'); setMobileNav(false) }}><Sparkles size={17} /> Générer depuis une liste</button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button><button className={`nav-item ${libraryFilter === 'folders' || selectedFolderId !== null ? 'active' : ''}`} onClick={() => setLibraryFilter('folders')}><Folder size={17} /> Dossiers <span className="nav-count">{folders.length}</span></button></nav>
-        {(libraryFilter === 'folders' || selectedFolderId !== null) && <div className="sidebar-section"><div className="section-label"><span>Dossiers personnalisés</span><button className="mini-button" title="Créer un dossier" aria-label="Créer un dossier" onClick={() => setIsCreatingFolder(true)}><Plus size={15} /></button></div>{isCreatingFolder && <form className="new-folder-form" onSubmit={(event) => { event.preventDefault(); void createFolder() }}><input autoFocus value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} placeholder="Nom du dossier" aria-label="Nom du dossier" /><button type="submit" disabled={!newFolderName.trim()}><Check size={14} /></button><button type="button" onClick={() => { setIsCreatingFolder(false); setNewFolderName('') }}><X size={14} /></button></form>}{folders.length ? [...folders].sort((left, right) => left.name.localeCompare(right.name, 'fr')).map((folder) => <div className="folder-row" key={folder.id}><button className={`folder-item ${selectedFolderId === folder.id ? 'selected' : ''}`} onClick={() => { setLibraryFilter(`folder:${folder.id}`); setMobileNav(false) }}><Folder size={15} />{folder.name}<small className="nav-count">{libraryBoards.filter((item) => item.folderId === folder.id).length}</small></button><span className="folder-actions"><button title={`Renommer ${folder.name}`} aria-label={`Renommer ${folder.name}`} onClick={() => void renameFolder(folder)}><Pencil size={12} /></button><button title={`Supprimer ${folder.name}`} aria-label={`Supprimer ${folder.name}`} onClick={() => void removeFolder(folder)}><Trash2 size={12} /></button></span></div>) : <p className="saved-empty">Crée un dossier pour retrouver facilement tes TLA.</p>}</div>}
-        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <div className="saved-board-row" key={savedBoard.id}><button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button>{libraryFilter === 'drafts' && <button className="saved-board-delete" type="button" title={`Supprimer ${savedBoard.title}`} aria-label={`Supprimer ${savedBoard.title}`} onClick={() => void removeBoard(savedBoard)}><Trash2 size={15} /></button>}</div>) : <p className="saved-empty">{libraryFilter === 'folders' ? 'Choisis un dossier pour afficher ses TLA.' : 'Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.'}</p>}</div>
+        <nav className="main-nav"><button className={`nav-item ${libraryFilter === 'recent' ? 'active' : ''}`} onClick={() => setLibraryFilter('recent')}><Sparkles size={17} /> Tous les TLA <span className="nav-count">{libraryBoards.length}</span></button><button className={`nav-item ${libraryFilter === 'drafts' ? 'active' : ''}`} onClick={() => setLibraryFilter('drafts')}><Archive size={17} /> Brouillons</button><button className={`nav-item ${libraryFilter === 'favorites' ? 'active' : ''}`} onClick={() => setLibraryFilter('favorites')}><span className="star-icon">★</span> Favoris</button></nav>
+        {sidebarTab === 'library' && <div className="sidebar-section"><div className="section-label"><span>Dossiers</span><button className="mini-button" title="Ajouter un dossier" aria-label="Ajouter un dossier" onClick={() => setIsCreatingFolder(true)}><Plus size={15} /></button></div>{isCreatingFolder && <form className="new-folder-form" onSubmit={(event) => { event.preventDefault(); void createFolder() }}><input autoFocus value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} placeholder="Nom du dossier" aria-label="Nom du dossier" /><button type="submit" disabled={!newFolderName.trim()}><Check size={14} /></button><button type="button" onClick={() => { setIsCreatingFolder(false); setNewFolderName('') }}><X size={14} /></button></form>}{folders.length ? [...folders].sort((left, right) => left.name.localeCompare(right.name, 'fr')).map((folder) => <div className="folder-row" key={folder.id}><button className={`folder-item ${selectedFolderId === folder.id ? 'selected' : ''}`} onClick={() => { setLibraryFilter(`folder:${folder.id}`); setMobileNav(false) }}><Folder size={15} />{folder.name}<small className="nav-count">{libraryBoards.filter((item) => item.folderId === folder.id).length}</small></button><span className="folder-actions"><button title={`Renommer ${folder.name}`} aria-label={`Renommer ${folder.name}`} onClick={() => void renameFolder(folder)}><Pencil size={12} /></button><button title={`Supprimer ${folder.name}`} aria-label={`Supprimer ${folder.name}`} onClick={() => void removeFolder(folder)}><Trash2 size={12} /></button></span></div>) : <p className="saved-empty">Crée un dossier pour retrouver facilement tes TLA.</p>}</div>}
+        <div className="saved-boards"><div className="saved-boards-heading"><span>{libraryLabel}</span><small>{visibleBoards.length}</small></div>{visibleBoards.length ? visibleBoards.map((savedBoard) => <div className="saved-board-row" key={savedBoard.id}><button className={`saved-board ${savedBoard.id === board.id ? 'current' : ''}`} onClick={() => openSavedBoard(savedBoard)}><span className="saved-board-icon"><LayoutGrid size={14} /></span><span className="saved-board-copy"><strong>{savedBoard.title}</strong><small>{savedBoard.columns} × {savedBoard.rows} · {new Date(savedBoard.updatedAt).toLocaleDateString('fr-FR')}</small></span></button><button className="saved-board-delete" type="button" title={`Supprimer ${savedBoard.title}`} aria-label={`Supprimer ${savedBoard.title}`} onClick={() => void removeBoard(savedBoard)}><Trash2 size={15} /></button></div>) : <p className="saved-empty">{selectedFolderId ? 'Aucun TLA dans ce dossier.' : 'Aucun TLA dans cette vue. Les données restent propres à chaque navigateur.'}</p>}</div>
         <div className="sidebar-footer"><div className="local-note"><span className="local-icon"><Check size={13} /></span><div><strong>Local à cet appareil</strong><small>Vos données restent privées</small></div></div></div>
       </aside>
       {mobileNav && <button className="scrim" aria-label="Fermer le menu" onClick={() => setMobileNav(false)} />}
       <main className="main-content">
-        <div className="editor-header"><div><div className="eyebrow">Brouillon · A4 paysage</div><input className="title-input" value={board.title} onChange={(event) => updateBoard({ ...board, title: event.target.value })} aria-label="Titre du TLA" /></div><div className="editor-tools"><label className="select-control"><span>Grille</span><select value={`${board.columns}x${board.rows}`} onChange={(event) => changeSize(event.target.value)}><option value="5x4">5 × 4</option><option value="6x4">6 × 4</option><option value="4x3">4 × 3</option><option value="6x5">6 × 5</option></select><ChevronDown size={14} /></label><label className="select-control folder-control"><span>Dossier</span><select aria-label="Dossier du TLA" value={board.folderId ?? ''} onChange={(event) => updateBoard({ ...board, folderId: event.target.value || undefined })}><option value="">Sans dossier</option>{folders.map((folder) => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select><ChevronDown size={14} /></label></div></div>
-        <div className="translate-toolbar"><button className="toolbar-button translate-button" onClick={() => void translateBoard()}><Languages size={16} /> Traduire en anglais</button></div>
         {error && <div className="notice error-notice"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}{success && <div className="notice success-notice"><span>{success}</span><button onClick={() => setSuccess('')}><X size={15} /></button></div>}
-        <div className="canvas-wrap"><div className="sheet" ref={sheetRef}><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => openSearch(cell.id)} onEdit={(patch) => updateCell(cell.id, patch)} onDragStart={() => setDraggedId(cell.id)} onDrop={() => { if (draggedId) updateBoard(moveOrSwapCells(board, draggedId, cell.id)); setDraggedId(null) }} onDelete={() => updateCell(cell.id, { source: null, imageData: undefined, pictogramId: undefined, label: '', favorite: false })} />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div>
-        {board.overflowWords.length > 0 && <div className="overflow-notice"><strong>{board.overflowWords.length} mot{board.overflowWords.length > 1 ? 's' : ''} en attente</strong><span>{board.overflowWords.join(' · ')}</span><button onClick={() => setPanel('list')}>Revoir la sélection</button></div>}
+        <div className="board-pages">{pageBoards.map((page, index) => <BoardSheet key={page.id} board={page} onDeleteBoard={() => void removeBoard(page)} folders={folders} onUpdateBoard={(next) => updatePageBoard(page, next)} pageNumber={index + 1} active={page.id === board.id} selectedCellIds={selectedCellIds} setSheetRef={(element) => { if (page.id === board.id) sheetRef.current = element }} onSelectCell={(cellId) => selectPageCell(page, cellId)} onOpenCell={(cellId) => openPageSearch(page, cellId)} onUpdateCell={(cellId, patch) => updatePageCell(page, cellId, patch)} onDragStart={setDraggedId} onDrop={(cellId) => { if (page.id === board.id && draggedId) updateBoard(moveOrSwapCells(board, draggedId, cellId)); setDraggedId(null) }} onDelete={(cellId) => updatePageCell(page, cellId, { source: null, imageData: undefined, imageMime: undefined, pictogramId: undefined, searchTerm: undefined, label: '', favorite: false, blackAndWhite: false })} />)}</div>
         <div className="bottom-hint"><button className="quick-new-board" type="button" onClick={createBoard}><span className="key-hint"><Plus size={14} /></span> Nouveau TLA vierge</button><span>Le TLA en cours reste dans les brouillons</span></div>
       </main>
     </div>
-    {panel === 'search' && <SearchPanel term={searchTerm} setTerm={setSearchTerm} results={results} state={searchState} error={error} onSearch={() => void runSearch()} onSpeech={toggleSpeech} speaking={isSpeaking} onChoose={choosePictogram} onClose={() => setPanel('none')} onUpload={() => fileInputRef.current?.click()} />}
-    {panel === 'list' && <div className="modal-backdrop"><section className="modal list-modal"><div className="modal-head"><div><span className="eyebrow">Création en lot</span><h2>Générer depuis une liste</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div><p className="modal-intro">Un mot par ligne ou séparé par une virgule. Chaque mot est recherché sur ARASAAC : le mot saisi restera la légende, avec une proposition de pictogramme modifiable ensuite.</p><textarea value={listText} onChange={(event) => { setListText(event.target.value); setBatchProposals([]); setBatchState('idle') }} rows={6} autoFocus /><div className="list-meta"><span>{normalizeList().length} mots détectés</span><button className="text-button" onClick={toggleSpeech}><Mic size={15} /> Dictée manuelle</button></div>{batchState === 'idle' && <button className="proposal-button" onClick={() => void loadBatchProposals()}><Search size={16} /> Rechercher les pictogrammes proposés</button>}{batchState !== 'idle' && <div className="batch-proposals"><div className="proposal-heading"><strong>Propositions ARASAAC</strong><span>{batchState === 'loading' ? 'Recherche en cours…' : 'Vérifiez les choix avant insertion'}</span></div>{batchProposals.map((proposal) => <div className="proposal-row" key={proposal.word}><span className="proposal-word">{proposal.word}</span>{proposal.state === 'loading' && <span className="proposal-status">Recherche…</span>}{proposal.state === 'empty' && <span className="proposal-status muted">Aucun résultat</span>}{proposal.state === 'error' && <span className="proposal-status error">Indisponible</span>}{proposal.result && <><img src={proposal.result.imageUrl} alt="" /><span className="proposal-label">{proposal.result.label}</span><span className="proposal-hint">modifiable après insertion</span></>}</div>)}</div>}<div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Annuler</button><button className="primary-button" disabled={batchState !== 'ready'} onClick={generateList}><Sparkles size={16} /> Insérer les propositions</button></div></section></div>}
+    {panel === 'search' && <SearchPanel term={searchTerm} setTerm={setSearchTerm} results={results} state={searchState} error={error} onSearch={() => void runSearch()} onChoose={choosePictogram} onClose={() => setPanel('none')} onUpload={() => fileInputRef.current?.click()} />}
+    {panel === 'list' && <div className="modal-backdrop"><section className="modal list-modal">
+      <div className="modal-head"><div><span className="eyebrow">Création en lot</span><h2>Générer depuis une liste</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div>
+      <p className="modal-intro">Un mot par ligne ou séparé par une virgule. Chaque mot est recherché sur ARASAAC : le mot saisi restera la légende, avec une proposition de pictogramme modifiable ensuite.</p>
+      <textarea value={listText} onChange={(event) => { setListText(event.target.value); setBatchProposals([]); setBatchState('idle') }} rows={6} autoFocus placeholder="Ajouter ici vos mots" />
+      <div className="list-meta"><span>{normalizeList().length} mots détectés</span></div>
+      {batchState === 'idle' && <button className="proposal-button" onClick={() => void loadBatchProposals()}><Search size={16} /> Rechercher les pictogrammes proposés</button>}
+      {batchState !== 'idle' && <div className="batch-proposals"><div className="proposal-heading"><strong>Propositions ARASAAC</strong><span>{batchState === 'loading' ? 'Recherche en cours…' : 'Vérifiez les choix avant insertion'}</span></div>{batchProposals.map((proposal) => <div className="proposal-row" key={proposal.word}><span className="proposal-word">{proposal.word}</span>{proposal.state === 'loading' && <span className="proposal-status">Recherche…</span>}{proposal.state === 'empty' && <span className="proposal-status muted">Aucun résultat</span>}{proposal.state === 'error' && <span className="proposal-status error">Indisponible</span>}{proposal.result && <><img src={proposal.result.imageUrl} alt="" /><span className="proposal-label">{proposal.result.label}</span><span className="proposal-hint">modifiable après insertion</span></>}</div>)}</div>}
+      <div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Annuler</button><button className="primary-button" disabled={batchState !== 'ready'} onClick={generateList}><Sparkles size={16} /> Insérer les propositions</button></div>
+    </section></div>}
     {panel === 'preview' && <div className="modal-backdrop"><section className="preview-modal"><div className="modal-head"><div><span className="eyebrow">Sortie fidèle à l’impression</span><h2>Aperçu {board.pageSize}</h2></div><button className="icon-button" onClick={() => setPanel('none')}><X size={19} /></button></div><div className="preview-frame"><div className="preview-sheet"><div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">A4 · paysage</span></div><div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>{board.cells.map((cell) => <CellCard key={cell.id} cell={cell} onOpen={() => undefined} onEdit={() => undefined} onDragStart={() => undefined} onDrop={() => undefined} onDelete={() => undefined} preview />)}</div><div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div></div></div><div className="modal-actions"><button className="toolbar-button secondary" onClick={() => setPanel('none')}>Retour à l’édition</button><button className="primary-button" onClick={() => void downloadBoard()}><ArrowDownToLine size={16} /> Télécharger le PDF</button></div></section></div>}
     {panel === 'translation' && <div className="modal-backdrop"><section className="modal translation-modal"><div className="modal-head"><div><span className="eyebrow">Copie du TLA · anglais</span><h2>Vérifier la traduction</h2></div><button className="icon-button" aria-label="Fermer" onClick={() => { setPanel('none'); setTranslationState('idle') }}><X size={19} /></button></div><p className="translation-privacy">Le titre et les mots sont envoyés au service public MyMemory pour traduction. N’inclus pas d’informations personnelles.</p>{translationState === 'loading' && <div className="search-start"><Languages size={28} /><p>Traduction en cours…</p></div>}{translationState === 'error' && <div className="inline-error">{translationError}<button className="text-button" onClick={() => void translateBoard()}>Réessayer</button></div>}{translationState === 'ready' && translationDraft && translationSource && <><p className="modal-intro">L’original reste intact. Corrige les propositions ci-dessous, puis crée la copie anglaise.</p><label className="translation-title"><span>Titre du TLA</span><input value={translationDraft.title} onChange={(event) => setTranslationDraft((current) => current ? { ...current, title: event.target.value } : current)} /></label><div className="translation-rows">{translationDraft.cells.map((translatedCell) => { const sourceCell = translationSource.cells.find((cell) => cell.id === translatedCell.id); return <div className="translation-row" key={translatedCell.id}>{sourceCell?.imageData ? <img src={sourceCell.imageData} alt="" /> : <span className="translation-icon"><LayoutGrid size={17} /></span>}<span className="translation-original">{translatedCell.original}</span><input aria-label={`Traduction de ${translatedCell.original}`} value={translatedCell.translated} onChange={(event) => setTranslationDraft((current) => current ? { ...current, cells: current.cells.map((cell) => cell.id === translatedCell.id ? { ...cell, translated: event.target.value } : cell) } : current)} /></div>})}</div>{translationDraft.overflowWords.length > 0 && <div className="translation-overflow"><strong>Mots en attente</strong>{translationDraft.overflowWords.map((word, index) => <label key={`${translationSource.overflowWords[index]}-${index}`}><span>{translationSource.overflowWords[index]}</span><input aria-label={`Traduction du mot en attente ${translationSource.overflowWords[index]}`} value={word} onChange={(event) => setTranslationDraft((current) => current ? { ...current, overflowWords: current.overflowWords.map((item, itemIndex) => itemIndex === index ? event.target.value : item) } : current)} /></label>)}</div>}</>}<div className="modal-actions"><button className="toolbar-button secondary" onClick={() => { setPanel('none'); setTranslationState('idle') }}>Annuler</button><button className="primary-button" onClick={createTranslatedCopy} disabled={translationState !== 'ready' || !translationDraft}>{translationState === 'ready' ? 'Créer la copie anglaise' : 'Traduction…'}</button></div></section></div>}
     <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) importImage(file); event.target.value = '' }} />
   </div>
 }
 
-function CellCard({ cell, onOpen, onEdit, onDragStart, onDrop, onDelete, preview = false }: { cell: Cell; onOpen: () => void; onEdit: (patch: Partial<Cell>) => void; onDragStart: () => void; onDrop: () => void; onDelete: () => void; preview?: boolean }) {
-  return <article className={`cell-card ${cell.label ? 'filled' : 'empty'} ${cell.favorite ? 'is-favorite' : ''}`} draggable={Boolean(cell.label) && !preview} onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
-    {cell.label ? <><button className="cell-main" onClick={onOpen} aria-label={`Modifier ${cell.label}`}>{cell.imageData ? <img src={cell.imageData} alt="" /> : <div className="image-placeholder"><ImagePlus size={25} /></div>}<span>{cell.label}</span></button>{!preview && <div className="cell-actions"><button title="Favori" onClick={() => onEdit({ favorite: !cell.favorite })}>★</button><button title="Effacer" onClick={onDelete}><Trash2 size={13} /></button></div>}</> : <button className="empty-add" onClick={onOpen}><span className="plus-circle"><Plus size={22} /></span><span>Ajouter</span></button>}
+function BoardSheet({ board, onDeleteBoard, folders, onUpdateBoard, pageNumber, active, selectedCellIds, setSheetRef, onSelectCell, onOpenCell, onUpdateCell, onDragStart, onDrop, onDelete }: { board: Board; onDeleteBoard: () => void; folders: TlaFolder[]; onUpdateBoard: (next: Board) => void; pageNumber: number; active: boolean; selectedCellIds: string[]; setSheetRef: (element: HTMLDivElement | null) => void; onSelectCell: (cellId: string) => void; onOpenCell: (cellId: string) => void; onUpdateCell: (cellId: string, patch: Partial<Cell>) => void; onDragStart: (cellId: string) => void; onDrop: (cellId: string) => void; onDelete: (cellId: string) => void }) {
+  return <>
+    <div className={`canvas-wrap board-page ${active ? 'active-board' : ''}`}>
+      <div className="page-label"><strong>TLA {pageNumber}</strong><div className="page-actions">{active && <span>Modification en cours</span>}<button className="board-delete-button" type="button" title={`Supprimer « ${board.title} »`} aria-label={`Supprimer le TLA ${pageNumber} : ${board.title}`} onClick={onDeleteBoard}><Trash2 size={18} /></button></div></div>
+      <div className="editor-header board-editor-header">
+        <label className="board-title-control">
+          <span className="eyebrow">Modifier le titre du TLA · {board.pageSize} paysage</span>
+          <input className="title-input" value={board.title} onChange={(event) => onUpdateBoard({ ...board, title: event.target.value })} aria-label={`Titre du TLA ${pageNumber}`} />
+        </label>
+        <div className="editor-tools">
+          <GridPicker rows={board.rows} columns={board.columns} onSelect={(rows, columns) => onUpdateBoard(resizeBoard(board, rows, columns))} />
+          <label className="select-control folder-control"><span>Dossier</span><select aria-label={`Dossier du TLA ${pageNumber}`} value={board.folderId ?? ''} onChange={(event) => onUpdateBoard({ ...board, folderId: event.target.value || undefined })}><option value="">Sans dossier</option>{folders.map((folder) => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select><ChevronDown size={14} /></label>
+        </div>
+      </div>
+      <div className="sheet" ref={setSheetRef}>
+        <div className="sheet-heading"><h1>{board.title}</h1><span className="sheet-format">{board.pageSize} · paysage</span></div>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${board.columns}, 1fr)`, gridTemplateRows: `repeat(${board.rows}, 1fr)` }}>
+          {board.cells.map((cell) => <CellCard key={cell.id} cell={cell} selected={selectedCellIds.includes(cell.id)} canEdit={active} onOpen={() => cell.label ? onSelectCell(cell.id) : onOpenCell(cell.id)} onToggleSelect={() => onSelectCell(cell.id)} onEdit={(patch) => onUpdateCell(cell.id, patch)} onEditPictogram={() => onOpenCell(cell.id)} onDragStart={() => onDragStart(cell.id)} onDrop={() => onDrop(cell.id)} onDelete={() => onDelete(cell.id)} />)}
+        </div>
+        <div className="credit">Pictogrammes ARASAAC · CC BY-NC-SA</div>
+      </div>
+    </div>
+  </>
+}
+
+function GridPicker({ rows, columns, onSelect }: { rows: number; columns: number; onSelect: (rows: number, columns: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const [hovered, setHovered] = useState<{ rows: number; columns: number } | null>(null)
+  const preview = hovered ?? { rows, columns }
+
+  return <div className="grid-picker">
+    <button className="grid-picker-trigger" type="button" aria-label={`Grille ${columns} colonnes par ${rows} lignes`} aria-expanded={open} onClick={() => { setOpen((value) => !value); setHovered(null) }}>
+      <LayoutGrid size={15} /><span>Grille</span><strong>{columns} × {rows}</strong><ChevronDown size={14} />
+    </button>
+    {open && <div className="grid-picker-popover" onMouseLeave={() => setHovered(null)}>
+      <div className="grid-picker-size">{preview.columns} colonnes × {preview.rows} lignes</div>
+      <div className="grid-picker-matrix" role="grid" aria-label="Choisir le nombre de cases">
+        {Array.from({ length: 150 }, (_, index) => {
+          const column = index % 15 + 1
+          const row = Math.floor(index / 15) + 1
+          const active = column <= preview.columns && row <= preview.rows
+          return <button key={`${column}-${row}`} className={active ? 'active' : ''} type="button" role="gridcell" aria-label={`${column} colonnes, ${row} lignes`} title={`${column} × ${row}`} onMouseEnter={() => setHovered({ rows: row, columns: column })} onFocus={() => setHovered({ rows: row, columns: column })} onClick={() => { onSelect(row, column); setOpen(false); setHovered(null) }} />
+        })}
+      </div>
+      <div className="grid-picker-limits">Maximum : 15 colonnes × 10 lignes</div>
+    </div>}
+  </div>
+}
+
+function CellCard({ cell, onOpen, onEdit, onEditPictogram, onToggleSelect, onDragStart, onDrop, onDelete, selected = false, canEdit = true, preview = false }: { cell: Cell; onOpen: () => void; onEdit: (patch: Partial<Cell>) => void; onEditPictogram?: () => void; onToggleSelect?: () => void; onDragStart: () => void; onDrop: () => void; onDelete: () => void; selected?: boolean; canEdit?: boolean; preview?: boolean }) {
+  return <article className={`cell-card ${cell.label ? 'filled' : 'empty'} ${cell.favorite ? 'is-favorite' : ''} ${selected ? 'selected' : ''}`} draggable={Boolean(cell.label) && canEdit && !preview} onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
+    {cell.label ? <><button className="cell-main" onClick={onOpen} aria-label={`Sélectionner ${cell.label.toLocaleUpperCase('fr-FR')}`} aria-pressed={selected}>{cell.imageData ? <img src={cell.imageData} alt="" style={{ filter: cell.blackAndWhite ? 'grayscale(1)' : undefined }} /> : <div className="image-placeholder"><ImagePlus size={25} /></div>}<span style={{ color: cell.textColor, fontSize: cell.textSize === 'small' ? 'clamp(8px, .8vw, 11px)' : cell.textSize === 'large' ? 'clamp(12px, 1.35vw, 18px)' : undefined, fontWeight: cell.bold === false ? 500 : 700, textTransform: cell.textCase === 'lowercase' ? 'lowercase' : 'uppercase' }}>{cell.label.toLocaleUpperCase('fr-FR')}</span></button>{!preview && canEdit && <><button className="selection-bubble" type="button" aria-label={`${selected ? 'Désélectionner' : 'Sélectionner'} ${cell.label}`} aria-pressed={selected} onClick={(event) => { event.stopPropagation(); onToggleSelect?.() }}>{selected && <Check size={14} />}</button><div className="cell-actions"><button title="Remplacer le pictogramme" aria-label={`Remplacer le pictogramme ${cell.label}`} onClick={() => onEditPictogram?.()}><Pencil size={13} /></button><button title="Favori" aria-label="Favori" onClick={() => onEdit({ favorite: !cell.favorite })}>★</button><button title="Effacer" aria-label={`Effacer ${cell.label}`} onClick={onDelete}><Trash2 size={13} /></button></div></>}</> : <button className="empty-add" onClick={onOpen}><span className="plus-circle"><Plus size={22} /></span><span>Ajouter</span></button>}
   </article>
 }
 
-function SearchPanel({ term, setTerm, results, state, error, onSearch, onSpeech, speaking, onChoose, onClose, onUpload }: { term: string; setTerm: (value: string) => void; results: PictogramResult[]; state: 'idle' | 'loading' | 'error'; error: string; onSearch: () => void; onSpeech: () => void; speaking: boolean; onChoose: (result: PictogramResult) => void; onClose: () => void; onUpload: () => void }) {
-  return <div className="modal-backdrop"><section className="modal search-modal"><div className="modal-head"><div><span className="eyebrow">Ajouter dans la case sélectionnée</span><h2>Quel pictogramme ?</h2></div><button className="icon-button" onClick={onClose}><X size={19} /></button></div><div className="search-row"><div className="search-input-wrap"><Search size={18} /><input autoFocus value={term} onChange={(event) => setTerm(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onSearch() }} placeholder="Rechercher en français…" /><button className={`mic-button ${speaking ? 'listening' : ''}`} title="Dictée manuelle" onClick={onSpeech}><Mic size={17} /></button></div><button className="primary-button" onClick={onSearch} disabled={state === 'loading'}>{state === 'loading' ? 'Recherche…' : 'Rechercher'}</button></div><div className="search-source"><span className="source-dot" /> Résultats réels ARASAAC <span>·</span> <button onClick={onUpload}><Upload size={14} /> Importer une photo</button></div>{state === 'error' && <div className="inline-error">{error}</div>}{state === 'idle' && !results.length && term && <div className="empty-results"><Search size={27} /><strong>Aucun résultat pour « {term} »</strong><span>Vérifiez l’orthographe ou essayez un mot plus général.</span></div>}{state === 'idle' && !results.length && !term && <div className="search-start"><Sparkles size={28} /><p>Recherchez un mot pour voir les pictogrammes disponibles.</p></div>}{state === 'loading' && <div className="result-grid loading-grid">{Array.from({ length: 6 }, (_, index) => <div className="result-skeleton" key={index} />)}</div>}{results.length > 0 && <div className="result-grid">{results.map((result) => <button className="result-card" key={result.id} onClick={() => onChoose(result)}><img src={result.imageUrl} alt="" /><span>{result.label}</span><small>ARASAAC #{result.id}</small></button>)}</div>}<div className="arasaac-note">Les pictogrammes ARASAAC sont utilisés selon leurs conditions de licence. La mention de crédit sera conservée dans le PDF.</div></section></div>
+function SearchPanel({ term, setTerm, results, state, error, onSearch, onChoose, onClose, onUpload }: { term: string; setTerm: (value: string) => void; results: PictogramResult[]; state: 'idle' | 'loading' | 'error'; error: string; onSearch: () => void; onChoose: (result: PictogramResult) => void; onClose: () => void; onUpload: () => void }) {
+  return <div className="modal-backdrop"><section className="modal search-modal">
+    <div className="modal-head"><div><span className="eyebrow">Ajouter dans la case sélectionnée</span><h2>Quel pictogramme ?</h2></div><button className="icon-button" onClick={onClose}><X size={19} /></button></div>
+    <div className="search-row"><div className="search-input-wrap"><Search size={18} /><input autoFocus value={term} onChange={(event) => setTerm(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onSearch() }} placeholder="Rechercher en français…" /></div><button className="primary-button" onClick={onSearch} disabled={state === 'loading'}>{state === 'loading' ? 'Recherche…' : 'Rechercher'}</button></div>
+    <div className="search-source"><span className="source-dot" /> Résultats réels ARASAAC <span>·</span> <button onClick={onUpload}><Upload size={14} /> Importer une photo</button></div>
+    {state === 'error' && <div className="inline-error">{error}</div>}
+    {state === 'idle' && !results.length && term && <div className="empty-results"><Search size={27} /><strong>Aucun résultat pour « {term} »</strong><span>Vérifiez l’orthographe ou essayez un mot plus général.</span></div>}
+    {state === 'idle' && !results.length && !term && <div className="search-start"><Sparkles size={28} /><p>Recherchez un mot pour voir les pictogrammes disponibles.</p></div>}
+    {state === 'loading' && <div className="result-grid loading-grid">{Array.from({ length: 6 }, (_, index) => <div className="result-skeleton" key={index} />)}</div>}
+    {results.length > 0 && <div className="result-grid">{results.map((result) => <button className="result-card" key={result.id} onClick={() => onChoose(result)}><img src={result.imageUrl} alt="" /><span>{result.label}</span><small>ARASAAC #{result.id}</small></button>)}</div>}
+    <div className="arasaac-note">Les pictogrammes ARASAAC sont utilisés selon leurs conditions de licence. La mention de crédit sera conservée dans le PDF.</div>
+  </section></div>
 }
 
 export default App

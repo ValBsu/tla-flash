@@ -15,6 +15,11 @@ export interface Cell {
   searchTerm?: string
   category: FitzgeraldCategory
   colorOverride?: string
+  blackAndWhite?: boolean
+  textSize?: 'small' | 'normal' | 'large'
+  textCase?: 'uppercase' | 'lowercase'
+  bold?: boolean
+  textColor?: string
   essential: boolean
   favorite: boolean
 }

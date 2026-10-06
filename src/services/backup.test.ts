@@ -34,4 +34,12 @@ describe('format de sauvegarde', () => {
     expect(isBackupData({ ...backup, boards: [{ ...board, cells: [{ id: 'bad' }] }] })).toBe(false)
     expect(isBackupData({ ...backup, folders: [{ id: 'legacy', name: 'Ancien dossier' }] })).toBe(true)
   })
+
+  it('accepte les options de style ajoutées aux cellules des archives', () => {
+    const board = createEmptyBoard()
+    board.cells[0] = { ...board.cells[0], textSize: 'large', textCase: 'lowercase', bold: false, textColor: '#ab34cd' }
+    const backup = { format: 'tla-studio-backup', version: 1, exportedAt: new Date().toISOString(), boards: [board] }
+    expect(isBackupData(backup)).toBe(true)
+    expect(isBackupData({ ...backup, boards: [{ ...board, cells: [{ ...board.cells[0], textColor: 'red' }, ...board.cells.slice(1)] }] })).toBe(false)
+  })
 })

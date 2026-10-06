@@ -32,6 +32,11 @@ const isCell = (value: unknown): value is Cell => {
     && (value.pictogramId === undefined || Number.isInteger(value.pictogramId))
     && (value.searchTerm === undefined || typeof value.searchTerm === 'string')
     && (value.colorOverride === undefined || typeof value.colorOverride === 'string')
+    && (value.blackAndWhite === undefined || typeof value.blackAndWhite === 'boolean')
+    && (value.textSize === undefined || value.textSize === 'small' || value.textSize === 'normal' || value.textSize === 'large')
+    && (value.textCase === undefined || value.textCase === 'uppercase' || value.textCase === 'lowercase')
+    && (value.bold === undefined || typeof value.bold === 'boolean')
+    && (value.textColor === undefined || (typeof value.textColor === 'string' && /^#[0-9a-f]{6}$/i.test(value.textColor)))
 }
 
 const isBoard = (value: unknown): value is Board => {
