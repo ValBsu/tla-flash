@@ -1,0 +1,105 @@
+[
+  {
+    "path": "index.html",
+    "status": 200,
+    "contentType": "text/html; charset=UTF-8",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "public,max-age=0,must-revalidate",
+      "Service-Worker-Allowed": null
+    }
+  },
+  {
+    "path": "sw.js",
+    "status": 200,
+    "contentType": "application/javascript; charset=UTF-8",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "no-cache",
+      "Service-Worker-Allowed": "/"
+    }
+  },
+  {
+    "path": "manifest.webmanifest",
+    "status": 200,
+    "contentType": "application/octet-stream",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "no-cache",
+      "Service-Worker-Allowed": null
+    }
+  },
+  {
+    "path": "assets/index-BMBIN2ZV.js",
+    "status": 200,
+    "contentType": "application/javascript; charset=UTF-8",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "public,max-age=0,must-revalidate",
+      "Service-Worker-Allowed": null
+    }
+  },
+  {
+    "path": "assets/index-Da7ZOjfg.css",
+    "status": 200,
+    "contentType": "text/css; charset=UTF-8",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "public,max-age=0,must-revalidate",
+      "Service-Worker-Allowed": null
+    }
+  },
+  {
+    "path": "pwa-192.png",
+    "status": 200,
+    "contentType": "image/png",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "public,max-age=0,must-revalidate",
+      "Service-Worker-Allowed": null
+    }
+  },
+  {
+    "path": "pwa-512.png",
+    "status": 200,
+    "contentType": "image/png",
+    "matchesLocal": true,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+      "Cache-Control": "public,max-age=0,must-revalidate",
+      "Service-Worker-Allowed": null
+    }
+  },
+  {
+    "path": "audit-navigation",
+    "status": 200,
+    "spaFallback": true
+  }
+]

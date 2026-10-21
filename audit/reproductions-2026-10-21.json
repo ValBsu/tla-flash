@@ -1,0 +1,20 @@
+{
+  "duplicateGeneration": {
+    "labels": [
+      "OUI",
+      "OUI"
+    ],
+    "overflow": []
+  },
+  "resize": {
+    "labels": [
+      "",
+      ""
+    ],
+    "overflow": [
+      "NON"
+    ],
+    "imageRetained": false
+  },
+  "invalidBackupAccepted": true
+}
