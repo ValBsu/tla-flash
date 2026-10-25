@@ -1,0 +1,249 @@
+{
+  "auditDate": "2026-10-25",
+  "command": "node audit/benchmark-search-after-2026-10-25.mjs",
+  "implementation": "Module produit src/services/pictograms.ts construit par Vite en bibliothèque ESM avec write:false, puis importé depuis un répertoire temporaire.",
+  "environment": {
+    "node": "v25.2.1",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M1"
+  },
+  "sourceHashes": {
+    "src/services/pictograms.ts": "4a2da40fb05446d58ca0f829be6626d2f7df8144363151864118bd153270fa13",
+    "src/services/arasaac.ts": "9a03b87b4e2a4164425b00ec8eda02b17d8c0363e08a368610f2e580a2906ed9",
+    "src/services/network.ts": "cf43c98827c8a270a2f7d8ee5503d5c701ff75c5df297eefd93f27f06e96e71d"
+  },
+  "index": {
+    "entries": 11760,
+    "bytes": 522879,
+    "simulatedFetchRequests": 1
+  },
+  "terms": [
+    "manger",
+    "boire",
+    "école",
+    "aller",
+    "je",
+    "ordinateur",
+    "maison",
+    "jouer",
+    "travail",
+    "chat"
+  ],
+  "searchesPerRun": 150,
+  "runs": 5,
+  "buildMs": 62.70625000000001,
+  "firstIndexAndSearchMs": 32.10616599999997,
+  "compatibilityAndWarmupMs": 134.60395799999998,
+  "compatibility": [
+    {
+      "term": "manger",
+      "equivalent": true,
+      "ids": [
+        6627,
+        6628,
+        6609,
+        106,
+        6598,
+        6610,
+        5084,
+        5085,
+        6599,
+        6619,
+        6620,
+        6565
+      ]
+    },
+    {
+      "term": "boire",
+      "equivalent": true,
+      "ids": [
+        1782,
+        1783,
+        1784,
+        1785,
+        1786,
+        1787,
+        1788,
+        1776,
+        1777,
+        1778,
+        1774,
+        1775
+      ]
+    },
+    {
+      "term": "école",
+      "equivalent": true,
+      "ids": [
+        11489,
+        11490,
+        11491,
+        11492,
+        500,
+        5891,
+        5892,
+        5893,
+        7889,
+        7890,
+        4966,
+        4967
+      ]
+    },
+    {
+      "term": "aller",
+      "equivalent": true,
+      "ids": [
+        1050,
+        1063,
+        1064,
+        1065,
+        1066,
+        9296,
+        9297,
+        9298,
+        1047,
+        1061,
+        1062,
+        2254
+      ]
+    },
+    {
+      "term": "je",
+      "equivalent": true,
+      "ids": [
+        476,
+        474,
+        479,
+        5577,
+        475,
+        478,
+        477,
+        5677
+      ]
+    },
+    {
+      "term": "ordinateur",
+      "equivalent": true,
+      "ids": [
+        7577,
+        7578,
+        7579,
+        7580,
+        7093,
+        7500,
+        4426,
+        4781,
+        7504,
+        7517,
+        7519,
+        7520
+      ]
+    },
+    {
+      "term": "maison",
+      "equivalent": true,
+      "ids": [
+        6517,
+        6518,
+        6519,
+        6520,
+        6521,
+        237,
+        2931,
+        11456,
+        11457,
+        6512,
+        10204,
+        556
+      ]
+    },
+    {
+      "term": "jouer",
+      "equivalent": true,
+      "ids": [
+        5748,
+        5777,
+        5778,
+        5740,
+        5741,
+        5742,
+        5743,
+        5744,
+        5751,
+        5752,
+        5706,
+        5707
+      ]
+    },
+    {
+      "term": "travail",
+      "equivalent": true,
+      "ids": [
+        10891,
+        10892,
+        10893,
+        10894,
+        10895,
+        10896,
+        10897,
+        10857,
+        10250,
+        10871,
+        10872,
+        10883
+      ]
+    },
+    {
+      "term": "chat",
+      "equivalent": true,
+      "ids": [
+        2546,
+        2541,
+        2545,
+        7351,
+        7504,
+        2316,
+        2317,
+        2542,
+        10175,
+        10596,
+        7392,
+        10181
+      ]
+    }
+  ],
+  "productWarmCache": {
+    "durationsMs": [
+      0.213957999999991,
+      0.13054199999999128,
+      0.13979199999999992,
+      0.1533340000000294,
+      0.12429200000002538
+    ],
+    "medianMs": 0.13979199999999992,
+    "minMs": 0.12429200000002538,
+    "maxMs": 0.213957999999991
+  },
+  "previousAlgorithm": {
+    "durationsMs": [
+      1837.716375,
+      1883.834625,
+      1841.2264170000008,
+      1934.1964580000003,
+      1836.7880419999992
+    ],
+    "medianMs": 1841.2264170000008,
+    "minMs": 1836.7880419999992,
+    "maxMs": 1934.1964580000003
+  },
+  "medianWarmCacheSpeedup": 13171.185883312362,
+  "limitations": [
+    "Mesure CPU isolée dans Node ; React, rendu, images et latence réseau sont exclus.",
+    "Le premier appel comprend le décodage JSON, la préparation de l’index et la première recherche ; la durée de construction Vite est rapportée séparément.",
+    "Les dix termes sont amorcés avant les séries de mesure : les séries produit mesurent le cache de résultats chaud et la copie défensive des résultats.",
+    "L’ancienne implémentation n’avait pas de cache de résultats ; son coût est remesuré ici sur les mêmes entrées.",
+    "L’équivalence est vérifiée sur dix termes, pas sur toutes les requêtes possibles.",
+    "Le gain mesuré ne prédit pas directement la latence réelle sur tablette ni les recherches inédites."
+  ]
+}

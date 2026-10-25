@@ -3,16 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && node scripts/clean-dist.mjs && vite build",
     "test": "vitest run",
     "lint": "eslint .",
+    "check": "npm run test && npm run lint && npm run build",
+    "audit:production": "npm audit --omit=dev",
     "preview": "vite preview"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
-    "html-to-image": "^1.11.13",
     "idb": "^8.0.3",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.2",
@@ -32,6 +36,7 @@
     "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
+    "fake-indexeddb": "^6.2.6",
     "globals": "^17.12.0",
     "jsdom": "^29.1.1",
     "typescript": "~6.0.2",

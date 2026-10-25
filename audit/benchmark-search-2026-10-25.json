@@ -1,0 +1,65 @@
+{
+  "auditDate": "2026-10-25",
+  "command": "node audit/benchmark-search-2026-10-25.mjs",
+  "scope": "CPU Node uniquement : transformation, filtrage et tri de l’index Sclera local. Réseau, React, rendu et images exclus.",
+  "environment": {
+    "node": "v25.2.1",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M1"
+  },
+  "source": "src/services/pictograms.ts:22-25",
+  "index": {
+    "entries": 11760,
+    "bytes": 522879,
+    "gzipBytes": 89576
+  },
+  "terms": [
+    "manger",
+    "boire",
+    "école",
+    "aller",
+    "je",
+    "ordinateur",
+    "maison",
+    "jouer",
+    "travail",
+    "chat"
+  ],
+  "searchesPerRun": 150,
+  "runs": 5,
+  "equivalentOnTerms": true,
+  "preparationMs": 26.504000000000005,
+  "original": {
+    "durationsMs": [
+      1853.5586660000001,
+      1890.4591250000003,
+      1868.266708,
+      1831.792292,
+      1864.737709
+    ],
+    "medianMs": 1864.737709,
+    "minMs": 1831.792292,
+    "maxMs": 1890.4591250000003
+  },
+  "prepared": {
+    "durationsMs": [
+      44.56529199999932,
+      44.120875000000524,
+      36.955667000000176,
+      37.35150000000067,
+      35.93041699999958
+    ],
+    "medianMs": 37.35150000000067,
+    "minMs": 35.93041699999958,
+    "maxMs": 44.56529199999932
+  },
+  "medianSpeedup": 49.924038097532005,
+  "limitations": [
+    "Le prototype préparé est isolé dans ce script ; il n’est pas intégré à l’application.",
+    "L’équivalence a été vérifiée uniquement sur les dix termes indiqués.",
+    "Les mêmes termes sont répétés pour simuler 150 cases ; le code actuel ne déduplique pas les recherches.",
+    "Les temps peuvent varier selon la machine, sa charge et le moteur JavaScript.",
+    "Ce résultat ne prédit pas directement la latence réelle sur tablette."
+  ]
+}

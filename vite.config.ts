@@ -30,8 +30,12 @@ export default defineConfig({
         globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2}', '**/pictograms/sclera/index.json', '**/pictograms/makaton/index.json'],
         globIgnores: ['**/pictograms/sclera/*.png', '**/pictograms/makaton/*.png'],
         runtimeCaching: [
-          { urlPattern: /\/pictograms\/sclera\/\d+\.png$/, handler: 'CacheFirst', options: { cacheName: 'sclera-images', expiration: { maxEntries: 12000 }, cacheableResponse: { statuses: [200] } } },
-          { urlPattern: /\/pictograms\/makaton\/\d+\.png$/, handler: 'CacheFirst', options: { cacheName: 'makaton-images', expiration: { maxEntries: 100 }, cacheableResponse: { statuses: [200] } } },
+          // Bump image cache versions when replacing a bank under unchanged filenames.
+          { urlPattern: /\/pictograms\/sclera\/\d+\.png(?:\?.*)?$/, handler: 'CacheFirst', options: { cacheName: 'sclera-images-v2', expiration: { maxEntries: 12000, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true }, cacheableResponse: { statuses: [200] } } },
+          { urlPattern: /\/pictograms\/makaton\/\d+\.png(?:\?.*)?$/, handler: 'CacheFirst', options: { cacheName: 'makaton-images-v2', expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true }, cacheableResponse: { statuses: [200] } } },
+          { urlPattern: /^https:\/\/static\.arasaac\.org\/pictograms\/\d+\/\d+_500\.png(?:\?.*)?$/, handler: 'CacheFirst', options: { cacheName: 'arasaac-images-v2', expiration: { maxEntries: 2000, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true }, cacheableResponse: { statuses: [200] } } },
+          { urlPattern: /^https:\/\/fonts\.googleapis\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'font-styles-v1', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } } },
+          { urlPattern: /^https:\/\/fonts\.gstatic\.com\//, handler: 'CacheFirst', options: { cacheName: 'font-files-v1', expiration: { maxEntries: 30, maxAgeSeconds: 365 * 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } } },
         ],
         navigateFallback: 'index.html',
       },

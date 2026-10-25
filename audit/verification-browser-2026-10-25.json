@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-25",
+  "target": "http://127.0.0.1:4173",
+  "browser": "156.0.8078.4",
+  "checks": [
+    {
+      "name": "Création et persistance IndexedDB après rechargement",
+      "success": true,
+      "durationMs": 1337
+    },
+    {
+      "name": "Photo et styles conservés après réduction puis agrandissement",
+      "success": true,
+      "durationMs": 955
+    },
+    {
+      "name": "Recherche et insertion d’un pictogramme Sclera sans service externe",
+      "success": true,
+      "durationMs": 440
+    },
+    {
+      "name": "Préparation explicite des images hors connexion",
+      "success": true,
+      "durationMs": 121,
+      "detail": "2/2 images disponibles sur cet appareil."
+    },
+    {
+      "name": "Duplication du TLA avec identifiants indépendants",
+      "success": true,
+      "durationMs": 62
+    },
+    {
+      "name": "Filtre de recherche dans la bibliothèque",
+      "success": true,
+      "durationMs": 58
+    },
+    {
+      "name": "Corbeille et restauration sans perte de contenu",
+      "success": true,
+      "durationMs": 188
+    },
+    {
+      "name": "Sauvegarde ZIP autonome et restauration réelle par l’interface",
+      "success": true,
+      "durationMs": 184,
+      "detail": {
+        "bytes": 14024,
+        "boards": 2,
+        "embeddedImages": 4
+      }
+    },
+    {
+      "name": "Véritable aperçu PDF et téléchargement A4 paysage",
+      "success": true,
+      "durationMs": 1865,
+      "detail": {
+        "bytes": 210637,
+        "mediaBox": "0 0 841.8899999999999864 595.2799999999999727"
+      }
+    },
+    {
+      "name": "Conflit entre deux onglets préserve la dernière version",
+      "success": true,
+      "durationMs": 748
+    },
+    {
+      "name": "Affichage mobile à 360 px sans débordement horizontal",
+      "success": true,
+      "durationMs": 825,
+      "detail": {
+        "viewport": 360,
+        "document": 360
+      }
+    },
+    {
+      "name": "Réouverture réelle hors connexion de l’interface et des TLA",
+      "success": true,
+      "durationMs": 84
+    }
+  ],
+  "consoleErrors": [],
+  "externalRequestsBlocked": [],
+  "success": true
+}

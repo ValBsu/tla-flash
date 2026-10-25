@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-25",
+  "target": "http://127.0.0.1:4173",
+  "logicalBoards": 50,
+  "cellsPerBoard": 150,
+  "logicalCells": 7500,
+  "success": true,
+  "mountedCells": 300,
+  "mountedPages": 2,
+  "placeholderPages": 48,
+  "boardWrappers": 50
+}

@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-25",
+  "purpose": "Reproductions de défauts actuels ; un test réussi confirme le défaut décrit.",
+  "command": "./node_modules/.bin/vitest run --config audit/reproductions-2026-10-25.config.mts",
+  "config": {
+    "root": "Racine du projet, résolue depuis la configuration",
+    "test": {
+      "environment": "jsdom",
+      "include": [
+        "audit/*-2026-10-25.repro.tsx"
+      ]
+    }
+  },
+  "scope": "App réelle et services réels ; repositories simulés et index Sclera simulé. Aucun navigateur automatisé.",
+  "evidence": {
+    "batchDuplicates": {
+      "input": [
+        "chat",
+        "chat",
+        "chien"
+      ],
+      "expectedDeduplicated": [
+        "CHAT",
+        "CHIEN"
+      ],
+      "actual": [
+        {
+          "label": "CHAT",
+          "pictogramId": 1
+        },
+        {
+          "label": "CHAT",
+          "pictogramId": 1
+        },
+        {
+          "label": "CHIEN",
+          "pictogramId": 2
+        }
+      ],
+      "confirmed": true,
+      "references": [
+        "src/App.tsx:286",
+        "src/App.tsx:307",
+        "src/domain/layout.ts:36"
+      ]
+    },
+    "resizePhotoLoss": {
+      "operation": "1 ligne × 2 colonnes → 1 × 1 → 1 × 2 dans App",
+      "initialCell": {
+        "id": "a05ac070-a559-4d96-bad3-70ec24744c81",
+        "row": 0,
+        "column": 1,
+        "source": "upload",
+        "label": "PHOTO",
+        "category": "other",
+        "essential": false,
+        "favorite": false,
+        "imageData": "data:image/png;base64,YWJj",
+        "textSize": "large",
+        "textColor": "#ff0000"
+      },
+      "actualCell": {
+        "id": "5316d045-e403-4013-9050-7c089e306af5",
+        "row": 0,
+        "column": 1,
+        "source": null,
+        "label": "",
+        "category": "other",
+        "essential": false,
+        "favorite": false
+      },
+      "overflowWords": [
+        "PHOTO"
+      ],
+      "visibleRecoveryUi": false,
+      "confirmed": true,
+      "references": [
+        "src/domain/layout.ts:14",
+        "src/App.tsx:573"
+      ]
+    },
+    "silentMissingPdfImage": {
+      "fetch": "rejected",
+      "imageFallback": "onerror",
+      "export": "resolved with PDF Blob",
+      "pdfBytes": 4367,
+      "warningsReturned": false,
+      "confirmed": true,
+      "references": [
+        "src/services/pdf.ts:28",
+        "src/services/pdf.ts:111"
+      ]
+    },
+    "longPdfLabel": {
+      "grid": "A4 15 colonnes × 10 lignes",
+      "label": "JE VEUX ALLER À LA PISCINE AVEC MES AMIS",
+      "cellWidthMm": 16,
+      "cellHeightMm": 14.45,
+      "fontSizePt": 7,
+      "lines": [
+        "JE",
+        "VEUX",
+        "ALLER",
+        "À LA",
+        "PISCINE",
+        "AVEC",
+        "MES",
+        "AMIS"
+      ],
+      "lastLineBaselineFromCellTopMm": 30.329027777777775,
+      "overflowMm": 15.879027777777775,
+      "confirmedByGeometry": true,
+      "limitation": "Mesure jsPDF des lignes et coordonnées selon le rendu source, sans inspection visuelle du PDF.",
+      "references": [
+        "src/services/pdf.ts:115",
+        "src/services/pdf.ts:119"
+      ]
+    }
+  }
+}

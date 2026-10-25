@@ -37,6 +37,10 @@ export interface Board {
   columns: number
   cells: Cell[]
   overflowWords: string[]
+  /** Cases mises de côté, avec leurs images et leur mise en forme. */
+  overflowCells?: Cell[]
+  /** Révision locale utilisée pour refuser les écrasements depuis un autre onglet. */
+  revision?: number
   createdAt: string
   updatedAt: string
 }

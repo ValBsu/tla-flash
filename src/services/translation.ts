@@ -1,3 +1,5 @@
+import { fetchJson, mapConcurrent } from './network'
+
 interface TranslationResponse {
   responseStatus?: unknown
   responseData?: { translatedText?: unknown }
@@ -18,28 +20,18 @@ export const parseTranslationResponse = (payload: unknown): string => {
     .trim()
 }
 
-const translateOne = async (text: string): Promise<string> => {
+const translateOne = async (text: string, signal: AbortSignal): Promise<string> => {
   const url = new URL('https://api.mymemory.translated.net/get')
   url.searchParams.set('q', text)
   url.searchParams.set('langpair', 'fr|en')
-  const response = await fetch(url)
-  if (!response.ok) throw new Error('Le service de traduction est indisponible.')
-  return parseTranslationResponse(await response.json())
+  return parseTranslationResponse(await fetchJson(url, signal))
 }
 
-export async function translateTexts(texts: string[]): Promise<string[]> {
+export async function translateTexts(texts: string[], signal?: AbortSignal): Promise<string[]> {
   const uniqueTexts = [...new Set(texts.filter((text) => text.trim()))]
   const translated = new Map<string, string>()
-  let nextIndex = 0
-
-  const worker = async () => {
-    while (nextIndex < uniqueTexts.length) {
-      const text = uniqueTexts[nextIndex]
-      nextIndex += 1
-      translated.set(text, await translateOne(text))
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(3, uniqueTexts.length) }, () => worker()))
+  await mapConcurrent(uniqueTexts, async (text, _index, requestSignal) => {
+    translated.set(text, await translateOne(text, requestSignal))
+  }, signal, 3)
   return texts.map((text) => translated.get(text) ?? text)
 }

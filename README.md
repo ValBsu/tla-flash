@@ -2,6 +2,12 @@
 
 Application locale-first de création de tableaux de langage augmenté, pensée pour un usage éducatif.
 
+Node.js 22.12 ou plus récent est nécessaire. `npm ci` installe les versions vérifiées du fichier de verrouillage.
+
+L’éditeur conserve la vue continue des TLA et ne monte les pages éloignées que lorsqu’elles approchent de l’écran. La bibliothèque permet de rechercher un titre ou un mot, de filtrer les tableaux, de consulter leurs miniatures et de restaurer la corbeille. Le dernier TLA ouvert est repris au démarrage.
+
+Le panneau **Modifier** propose la duplication, des modèles par activité, l’insertion dans les cases vides et le choix des variantes avant insertion en lot. Une réduction de grille conserve les cases retirées avec leurs images et styles dans une réserve ; agrandir la grille ou utiliser **Réinsérer** permet de les retrouver. Le déplacement est aussi disponible par une liste de positions, au clavier ou au toucher.
+
 ## Tester sur le réseau local
 
 Sur l’ordinateur qui lance l’application :
@@ -15,7 +21,7 @@ Vite affiche une adresse réseau, par exemple `http://192.168.1.20:5173/`. Ouvre
 
 ## Publier sur GitHub Pages
 
-Le workflow `.github/workflows/deploy.yml` teste, construit et publie automatiquement `dist` sur GitHub Pages à chaque push sur `main`. Dans GitHub, sélectionner **Settings > Pages > GitHub Actions** comme source.
+Le workflow `.github/workflows/deploy.yml` teste et construit les pull requests, puis publie automatiquement `dist` sur GitHub Pages à chaque push sur `main`. Il contrôle aussi les dépendances de production. Dans GitHub, sélectionner **Settings > Pages > GitHub Actions** comme source.
 
 URL attendue : `https://valbsu.github.io/tla-flash/`.
 
@@ -34,11 +40,21 @@ La version de production est installable depuis le navigateur et met en cache l�
 
 Après le déploiement, ouvrez l’adresse dans Chrome ou Edge et choisissez **Installer TLA Flash** depuis le menu du navigateur. Sur iPhone/iPad, utilisez **Partager > Sur l’écran d’accueil** dans Safari.
 
+Dans **Modifier**, **Préparer hors connexion** télécharge les images du TLA et de sa réserve, y compris celles d’ARASAAC, et indique le nombre de médias disponibles. Cela prépare le tableau choisi, sans télécharger toute la banque. Les images restent soumises au stockage conservé par le navigateur. **Protéger le stockage local** permet de demander la persistance ; le navigateur peut la refuser. Conservez aussi une sauvegarde ZIP indépendante.
+
 ## Sauvegarder les TLA
 
-Les TLA modifiés sont enregistrés immédiatement comme brouillons dans le navigateur ; une fermeture de page déclenche aussi une dernière tentative de sauvegarde. Ils restent disponibles après fermeture de l’app et redémarrage de l’ordinateur, dans le même navigateur. Une coupure de courant pendant l’écriture IndexedDB peut toutefois empêcher la toute dernière modification d’être conservée. **Sauvegarder** télécharge une archive ZIP de la bibliothèque complète, nommée avec le titre du TLA ouvert ; les dossiers et leur classement sont inclus. **Restaurer** fusionne l’archive avec la bibliothèque locale ; les TLA ou dossiers portant le même identifiant sont remplacés après confirmation, les autres sont conservés. Pour changer de navigateur ou d’appareil, transférez la sauvegarde ZIP.
+Les modifications sont mises immédiatement en file de sauvegarde dans IndexedDB ; les écritures d’un même TLA sont ordonnées et les éditions intermédiaires sont regroupées quand une écriture est déjà en cours. Attendez **Enregistré sur cet appareil** avant de quitter. Une coupure pendant une écriture peut empêcher la dernière modification d’être conservée. Une fermeture ne réécrit pas les anciennes données d’un onglet inactif.
+
+Les révisions empêchent un autre onglet d’écraser silencieusement un tableau modifié ailleurs. En cas de conflit ou d’erreur de stockage, le travail reste à l’écran : **Conserver ma version en copie** ou **Sauvegarder en ZIP** permet de le préserver. La suppression déplace le tableau dans une corbeille récupérable depuis la bibliothèque.
+
+**Sauvegarder** télécharge une archive ZIP de la bibliothèque complète, nommée avec le titre du TLA ouvert ; les dossiers, le classement et les médias des cases visibles et de la réserve sont inclus. Si une image nécessaire est inaccessible, l’application signale l’échec et ne télécharge pas d’archive incomplète. **Restaurer** fusionne l’archive avec la bibliothèque locale ; les TLA ou dossiers portant le même identifiant sont remplacés après confirmation, les autres sont conservés. Les sauvegardes de format 1 restent prises en charge et les anciens chemins de banques locales sont adaptés à l’hébergement actuel. Pour changer de navigateur ou d’appareil, transférez la sauvegarde ZIP.
+
+Les imports vérifient la cohérence des grilles, les identifiants, les dates, les références et les images. Les limites sont de 128 Mio pour le ZIP, 256 Mio pour son JSON décompressé et 1 000 TLA par archive. Les photos nouvellement importées sont limitées à 20 Mio et préparées à une résolution maximale de 1 600 pixels sur leur plus grand côté ; la transparence est conservée.
 
 La traduction en anglais utilise le service public MyMemory et nécessite une connexion Internet. Le titre et les libellés du TLA lui sont transmis pour traduction ; relis et corrige les propositions avant de créer la copie anglaise. Le TLA original reste inchangé.
+
+**Aperçu** affiche le PDF réellement généré. Les légendes longues sont ajustées à leur zone, les cases vides sont conservées et une image manquante empêche l’export avec un message indiquant les cases concernées. Vérifiez la lisibilité dans l’aperçu, en particulier pour les grilles denses. La bibliothèque peut exporter les TLA affichés ou un dossier en un PDF multipage.
 
 ## Commandes
 
@@ -47,6 +63,8 @@ npm run dev
 npm run test
 npm run lint
 npm run build
+npm run check
+npm run audit:production
 ```
 
 ## Bibliothèques
@@ -54,12 +72,12 @@ npm run build
 - Vite, React et TypeScript : application front-end rapide et typée.
 - `idb` : accès IndexedDB pour la sauvegarde locale.
 - `lucide-react` : icônes accessibles et cohérentes.
-- `jspdf`, `html-to-image` et `file-saver` : export PDF côté navigateur avec images intégrées.
+- `jspdf` et `file-saver` : export PDF côté navigateur avec images intégrées, chargé à la demande.
 - ARASAAC : recherche distante réelle de pictogrammes, sans données fictives.
 
 ## Limites
 
-Le partage et la dictée dépendent du navigateur. ARASAAC nécessite une connexion au moment de la recherche. GitHub Pages héberge le front-end, mais n’ajoute ni compte, ni serveur, ni bibliothèque commune entre appareils.
+Le partage dépend du navigateur. ARASAAC nécessite une connexion au moment d’une nouvelle recherche. GitHub Pages héberge le front-end, mais n’ajoute ni compte, ni serveur, ni bibliothèque commune entre appareils. Les tests automatisés couvrent aussi les transactions, la migration de stockage et les cas de perte de travail corrigés. Les fichiers `.repro.tsx` de l’audit du 25 octobre décrivent volontairement les défauts de l’ancienne version ; les tests de non régression actuels se trouvent dans `src`.
 
 ### Banque Sclera
 

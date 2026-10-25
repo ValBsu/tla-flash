@@ -1,17 +1,16 @@
-name: Deploy TLA Flash
+name: Check and deploy TLA Flash
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: tla-flash-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,21 +27,29 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
       - name: Tester et construire
-        run: npm run test && npm run lint && npm run build
-      - name: Préparer Pages
-        uses: actions/configure-pages@v5
+        run: npm run check
+      - name: Auditer les dépendances de production
+        run: npm run audit:production
       - name: Déposer le build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
     needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Préparer Pages
+        uses: actions/configure-pages@v5
       - name: Publier sur GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
