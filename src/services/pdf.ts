@@ -1,3 +1,4 @@
+import { pictogramCredit } from './pictograms'
 import { jsPDF } from 'jspdf'
 import { saveAs } from 'file-saver'
 import { type Board, type Cell } from '../types'
@@ -122,7 +123,7 @@ export async function exportBoardPdf(_element: HTMLElement, board: Board, downlo
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6)
   doc.setTextColor(100, 110, 106)
-  doc.text('Pictogrammes : ARASAAC (CC BY-NC-SA)', margin, height - 5)
+  doc.text(pictogramCredit(board), margin, height - 5)
   const blob = doc.output('blob')
   if (download) saveAs(blob, `${board.title || 'tla'}.pdf`)
   return blob

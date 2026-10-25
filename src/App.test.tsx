@@ -90,3 +90,30 @@ describe('commandes propres à chaque TLA', () => {
     expect((screen.getByRole('textbox', { name: 'Titre du TLA 1' }) as HTMLInputElement).value).toBe('Premier tableau')
   })
 })
+
+describe('choix de la banque de pictogrammes', () => {
+  it('sélectionne la banque Makaton fournie pour ce TLA', async () => {
+    repositories.boards.list.mockResolvedValue([])
+    repositories.folders.list.mockResolvedValue([])
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /Makaton Choisir pour ce TLA/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Makaton Banque de ce TLA/ }).getAttribute('aria-pressed')).toBe('true'))
+    await waitFor(() => expect(repositories.boards.save).toHaveBeenCalledWith(expect.objectContaining({ pictogramBank: 'makaton' })))
+  })
+
+  it('génère une liste dans Sclera et mémorise la banque dans le TLA', async () => {
+    repositories.boards.list.mockResolvedValue([])
+    repositories.folders.list.mockResolvedValue([])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: 1, label: 'école' }] }))
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /Sclera Choisir/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Sclera Banque de ce TLA/ }).getAttribute('aria-pressed')).toBe('true'))
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier mon TLA' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Générer depuis une liste' }))
+    fireEvent.change(screen.getByPlaceholderText('Ajouter ici vos mots'), { target: { value: 'école, inconnu' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Rechercher les pictogrammes proposés' }))
+    await screen.findByText('Aucun résultat')
+    fireEvent.click(screen.getByRole('button', { name: /Insérer|Générer le TLA/i }))
+    await waitFor(() => expect(repositories.boards.save).toHaveBeenCalledWith(expect.objectContaining({ pictogramBank: 'sclera', cells: expect.arrayContaining([expect.objectContaining({ label: 'ÉCOLE', source: 'sclera' }), expect.objectContaining({ label: 'inconnu', source: null })]) })))
+  })
+})

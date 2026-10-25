@@ -209,3 +209,19 @@
 .grid-picker-matrix button.active { border-color: #5b9f8d; background: #acd3c5; }
 .grid-picker-limits { margin-top: 9px; color: #879390; font-size: 10px; }
 @media (max-width: 420px) { .grid-picker-trigger { gap: 5px; padding: 0 7px; }.grid-picker-trigger span { display: inline; }.grid-picker-popover { left: 0; }.grid-picker-matrix { grid-template-columns: repeat(15, 11px); gap: 3px; }.grid-picker-matrix button { width: 11px; height: 11px; } }
+
+.sidebar-tabs .pictograms-tab { grid-column: 1 / -1; justify-content: flex-start; padding: 10px 8px; }
+.pictograms-tab small { margin-left: auto; color: var(--teal); font-size: 9px; }
+.pictogram-banks { padding: 8px 3px 22px; }
+.pictogram-banks h2 { margin: 4px 0 8px; color: var(--ink); font-size: 15px; }
+.pictogram-banks p { margin: 0 0 16px; color: #687773; font-size: 12px; line-height: 1.6; }
+.bank-options { display: grid; gap: 9px; }
+.bank-option { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 13px 11px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); text-align: left; }
+.bank-option strong, .bank-option small { display: block; }
+.bank-option strong { font-size: 13px; }
+.bank-option small { margin-top: 4px; font-size: 11px; font-weight: 400; }
+.bank-option.selected { border-color: var(--teal); background: #e5f2ec; color: var(--teal-dark); }
+.bank-option:disabled { opacity: 1; color: #78827e; background: #f0f3f1; cursor: not-allowed; }
+.bank-status { padding: 4px 6px; border-radius: 4px; background: #e3e9e5; font-size: 10px; white-space: nowrap; }
+.pictogram-banks .bank-help { margin-top: 14px; font-size: 11px; }
+.bank-continue { display: flex; align-items: center; gap: 8px; min-height: 38px; border: 0; border-radius: 6px; font-size: 12px; }

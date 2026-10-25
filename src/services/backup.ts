@@ -22,7 +22,7 @@ const isCell = (value: unknown): value is Cell => {
   return typeof value.id === 'string'
     && Number.isInteger(value.row)
     && Number.isInteger(value.column)
-    && (value.source === null || value.source === 'arasaac' || value.source === 'upload' || value.source === 'camera')
+    && (value.source === null || value.source === 'arasaac' || value.source === 'sclera' || value.source === 'makaton' || value.source === 'upload' || value.source === 'camera')
     && typeof value.label === 'string'
     && categories.includes(value.category as FitzgeraldCategory)
     && typeof value.essential === 'boolean'
@@ -43,6 +43,7 @@ const isBoard = (value: unknown): value is Board => {
   if (!isRecord(value)) return false
   return typeof value.id === 'string'
     && typeof value.title === 'string'
+    && (value.pictogramBank === undefined || value.pictogramBank === 'arasaac' || value.pictogramBank === 'sclera' || value.pictogramBank === 'makaton')
     && (value.folderId === undefined || typeof value.folderId === 'string')
     && (value.status === 'draft' || value.status === 'complete')
     && (value.pageSize === 'A4' || value.pageSize === 'A3')

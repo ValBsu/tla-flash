@@ -1,0 +1,535 @@
+[
+  {
+    "id": 1,
+    "label": "Aller",
+    "keywords": [
+      "Aller"
+    ]
+  },
+  {
+    "id": 2,
+    "label": "Au revoir",
+    "keywords": [
+      "Au revoir"
+    ]
+  },
+  {
+    "id": 3,
+    "label": "Bien",
+    "keywords": [
+      "Bien"
+    ]
+  },
+  {
+    "id": 4,
+    "label": "Boire",
+    "keywords": [
+      "Boire"
+    ]
+  },
+  {
+    "id": 5,
+    "label": "Boisson",
+    "keywords": [
+      "Boisson"
+    ]
+  },
+  {
+    "id": 6,
+    "label": "Bon (gout)",
+    "keywords": [
+      "Bon (gout)",
+      "gout"
+    ]
+  },
+  {
+    "id": 7,
+    "label": "Bonbon",
+    "keywords": [
+      "Bonbon"
+    ]
+  },
+  {
+    "id": 8,
+    "label": "Bonjour",
+    "keywords": [
+      "Bonjour"
+    ]
+  },
+  {
+    "id": 9,
+    "label": "Bulles",
+    "keywords": [
+      "Bulles"
+    ]
+  },
+  {
+    "id": 10,
+    "label": "Bus",
+    "keywords": [
+      "Bus",
+      "camion",
+      "tracteur (bus)",
+      "bus"
+    ]
+  },
+  {
+    "id": 11,
+    "label": "Camion",
+    "keywords": [
+      "Camion",
+      "Bus",
+      "camion",
+      "tracteur (camion)"
+    ]
+  },
+  {
+    "id": 12,
+    "label": "Tracteur",
+    "keywords": [
+      "Tracteur",
+      "Bus",
+      "camion",
+      "tracteur (tracteur)",
+      "tracteur"
+    ]
+  },
+  {
+    "id": 13,
+    "label": "Ca va",
+    "keywords": [
+      "Ca va"
+    ]
+  },
+  {
+    "id": 14,
+    "label": "Chaise",
+    "keywords": [
+      "Chaise"
+    ]
+  },
+  {
+    "id": 15,
+    "label": "Couche, protection",
+    "keywords": [
+      "Couche, protection",
+      "Couche",
+      "protection"
+    ]
+  },
+  {
+    "id": 16,
+    "label": "Dans",
+    "keywords": [
+      "Dans"
+    ]
+  },
+  {
+    "id": 17,
+    "label": "Debout",
+    "keywords": [
+      "Debout"
+    ]
+  },
+  {
+    "id": 18,
+    "label": "Donner",
+    "keywords": [
+      "Donner",
+      "1"
+    ]
+  },
+  {
+    "id": 19,
+    "label": "Donner",
+    "keywords": [
+      "Donner",
+      "2"
+    ]
+  },
+  {
+    "id": 20,
+    "label": "Dormir",
+    "keywords": [
+      "Dormir"
+    ]
+  },
+  {
+    "id": 21,
+    "label": "Encore",
+    "keywords": [
+      "Encore"
+    ]
+  },
+  {
+    "id": 22,
+    "label": "Entendre",
+    "keywords": [
+      "Entendre"
+    ]
+  },
+  {
+    "id": 23,
+    "label": "Faire caca",
+    "keywords": [
+      "Faire caca"
+    ]
+  },
+  {
+    "id": 24,
+    "label": "Faire pipi, toilettes",
+    "keywords": [
+      "Faire pipi, toilettes",
+      "Faire pipi",
+      "toilettes",
+      "1"
+    ]
+  },
+  {
+    "id": 25,
+    "label": "Faire pipi, toilettes",
+    "keywords": [
+      "Faire pipi, toilettes",
+      "Faire pipi",
+      "toilettes",
+      "2"
+    ]
+  },
+  {
+    "id": 26,
+    "label": "Frère",
+    "keywords": [
+      "Frère",
+      "1"
+    ]
+  },
+  {
+    "id": 27,
+    "label": "Frère",
+    "keywords": [
+      "Frère",
+      "2"
+    ]
+  },
+  {
+    "id": 28,
+    "label": "Gâteau",
+    "keywords": [
+      "Gâteau",
+      "1"
+    ]
+  },
+  {
+    "id": 29,
+    "label": "Gâteau",
+    "keywords": [
+      "Gâteau",
+      "2"
+    ]
+  },
+  {
+    "id": 30,
+    "label": "Ici, là",
+    "keywords": [
+      "Ici, là",
+      "Ici",
+      "là"
+    ]
+  },
+  {
+    "id": 31,
+    "label": "Je, moi",
+    "keywords": [
+      "Je, moi",
+      "Je",
+      "moi"
+    ]
+  },
+  {
+    "id": 32,
+    "label": "Là-bas",
+    "keywords": [
+      "Là-bas"
+    ]
+  },
+  {
+    "id": 33,
+    "label": "Lit",
+    "keywords": [
+      "Lit"
+    ]
+  },
+  {
+    "id": 34,
+    "label": "Lumière",
+    "keywords": [
+      "Lumière"
+    ]
+  },
+  {
+    "id": 35,
+    "label": "Maison",
+    "keywords": [
+      "Maison"
+    ]
+  },
+  {
+    "id": 36,
+    "label": "Maman",
+    "keywords": [
+      "Maman"
+    ]
+  },
+  {
+    "id": 37,
+    "label": "Manger",
+    "keywords": [
+      "Manger",
+      "1"
+    ]
+  },
+  {
+    "id": 38,
+    "label": "Manger",
+    "keywords": [
+      "Manger",
+      "2"
+    ]
+  },
+  {
+    "id": 39,
+    "label": "Mauvais",
+    "keywords": [
+      "Mauvais"
+    ]
+  },
+  {
+    "id": 40,
+    "label": "Musique",
+    "keywords": [
+      "Musique"
+    ]
+  },
+  {
+    "id": 41,
+    "label": "Nettoyer",
+    "keywords": [
+      "Nettoyer"
+    ]
+  },
+  {
+    "id": 42,
+    "label": "Non, ne",
+    "keywords": [
+      "Non, ne",
+      "Non",
+      "ne"
+    ]
+  },
+  {
+    "id": 43,
+    "label": "Nounours",
+    "keywords": [
+      "Nounours"
+    ]
+  },
+  {
+    "id": 44,
+    "label": "Où",
+    "keywords": [
+      "Où"
+    ]
+  },
+  {
+    "id": 45,
+    "label": "Oui",
+    "keywords": [
+      "Oui"
+    ]
+  },
+  {
+    "id": 46,
+    "label": "Papa",
+    "keywords": [
+      "Papa"
+    ]
+  },
+  {
+    "id": 47,
+    "label": "Partir",
+    "keywords": [
+      "Partir"
+    ]
+  },
+  {
+    "id": 48,
+    "label": "Pas",
+    "keywords": [
+      "Pas"
+    ]
+  },
+  {
+    "id": 49,
+    "label": "Pot (toilettes)",
+    "keywords": [
+      "Pot (toilettes)",
+      "toilettes"
+    ]
+  },
+  {
+    "id": 50,
+    "label": "Prendre un bain",
+    "keywords": [
+      "Prendre un bain"
+    ]
+  },
+  {
+    "id": 51,
+    "label": "Prendre une douche",
+    "keywords": [
+      "Prendre une douche"
+    ]
+  },
+  {
+    "id": 52,
+    "label": "Qui",
+    "keywords": [
+      "Qui"
+    ]
+  },
+  {
+    "id": 53,
+    "label": "Quoi, qu'est-ce-que, quel",
+    "keywords": [
+      "Quoi, qu'est-ce-que, quel",
+      "Quoi",
+      "qu'est-ce-que",
+      "quel"
+    ]
+  },
+  {
+    "id": 54,
+    "label": "Regarder",
+    "keywords": [
+      "Regarder"
+    ]
+  },
+  {
+    "id": 55,
+    "label": "Repas, à manger",
+    "keywords": [
+      "Repas, à manger",
+      "Repas",
+      "à manger",
+      "2"
+    ]
+  },
+  {
+    "id": 56,
+    "label": "Repas, à manger",
+    "keywords": [
+      "Repas, à manger",
+      "Repas",
+      "à manger"
+    ]
+  },
+  {
+    "id": 57,
+    "label": "S'asseoir",
+    "keywords": [
+      "S'asseoir"
+    ]
+  },
+  {
+    "id": 58,
+    "label": "Sage, gentil",
+    "keywords": [
+      "Sage, gentil",
+      "Sage",
+      "gentil"
+    ]
+  },
+  {
+    "id": 59,
+    "label": "Se laver",
+    "keywords": [
+      "Se laver"
+    ]
+  },
+  {
+    "id": 60,
+    "label": "Se lever",
+    "keywords": [
+      "Se lever"
+    ]
+  },
+  {
+    "id": 61,
+    "label": "Soeur",
+    "keywords": [
+      "Soeur",
+      "1"
+    ]
+  },
+  {
+    "id": 62,
+    "label": "Soeur",
+    "keywords": [
+      "Soeur",
+      "2"
+    ]
+  },
+  {
+    "id": 63,
+    "label": "Table",
+    "keywords": [
+      "Table"
+    ]
+  },
+  {
+    "id": 64,
+    "label": "Taxi",
+    "keywords": [
+      "Taxi"
+    ]
+  },
+  {
+    "id": 65,
+    "label": "Toilettes (objet)",
+    "keywords": [
+      "Toilettes (objet)",
+      "objet"
+    ]
+  },
+  {
+    "id": 66,
+    "label": "Toilettes (pièce)",
+    "keywords": [
+      "Toilettes (pièce)",
+      "pièce"
+    ]
+  },
+  {
+    "id": 67,
+    "label": "Tu, toi",
+    "keywords": [
+      "Tu, toi",
+      "Tu",
+      "toi"
+    ]
+  },
+  {
+    "id": 68,
+    "label": "Venir",
+    "keywords": [
+      "Venir"
+    ]
+  },
+  {
+    "id": 69,
+    "label": "Voiture",
+    "keywords": [
+      "Voiture"
+    ]
+  }
+]

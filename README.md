@@ -60,3 +60,15 @@ npm run build
 ## Limites
 
 Le partage et la dictée dépendent du navigateur. ARASAAC nécessite une connexion au moment de la recherche. GitHub Pages héberge le front-end, mais n’ajoute ni compte, ni serveur, ni bibliothèque commune entre appareils.
+
+### Banque Sclera
+
+Le panneau Pictogrammes propose ARASAAC et Sclera. Le choix est enregistré par TLA ; les anciennes sauvegardes utilisent ARASAAC par défaut. Changer de banque recherche une nouvelle image pour chaque case contenant un mot, conserve sa mise en forme et préserve les photos importées. Une absence de résultat laisse seulement le mot. En cas d’erreur réseau, le changement complet est annulé.
+
+La banque française provient de https://www.sclera.be/resources/download/picto_fr.zip. Les PNG originaux sont conservés sous `public/pictograms/sclera/`, avec des identifiants locaux et un index des noms français. Attribution : www.sclera.be, licence CC BY-NC 2.0 Belgique (voir `LICENSE.txt` dans ce dossier). Les images représentent environ 75 Mo sur l’hébergement, mais ne sont pas téléchargées en bloc au démarrage. Aucune clé API n’est nécessaire.
+
+La version de production met l’index en cache avec l’application et conserve les images Sclera consultées dans un cache dédié. Le hors connexion reste limité aux images déjà chargées et dépend du stockage conservé par le navigateur ; le téléchargement hors connexion de la banque complète n’est pas encore proposé.
+
+### Banque Makaton
+
+Le panneau Pictogrammes propose aussi la banque Makaton Niveau 1 fournie par l’utilisateur. Les 69 fichiers PNG sont intégrés sous `public/pictograms/makaton/` et recherchables par mot, avec prise en compte des accents et variantes du même pictogramme. L’utilisateur a confirmé l’autorisation d’intégrer et publier ces fichiers. Les images sont incluses dans le déploiement et téléchargées à la demande, pas en bloc au démarrage. Attribution dans le PDF : Makaton — Niveau 1 (fichiers fournis par l’utilisateur).

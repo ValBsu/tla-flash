@@ -1,6 +1,7 @@
 export type PageSize = 'A4' | 'A3'
 export type Orientation = 'landscape'
-export type SourceType = 'arasaac' | 'upload' | 'camera' | null
+export type PictogramBank = 'arasaac' | 'sclera' | 'makaton'
+export type SourceType = 'sclera' | 'arasaac' | 'makaton' | 'upload' | 'camera' | null
 export type FitzgeraldCategory = 'people' | 'verbs' | 'descriptive' | 'nouns' | 'social' | 'other'
 
 export interface Cell {
@@ -27,6 +28,7 @@ export interface Cell {
 export interface Board {
   id: string
   title: string
+  pictogramBank?: PictogramBank
   folderId?: string
   status: 'draft' | 'complete'
   pageSize: PageSize

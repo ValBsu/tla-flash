@@ -27,7 +27,12 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2}'],
+        globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2}', '**/pictograms/sclera/index.json', '**/pictograms/makaton/index.json'],
+        globIgnores: ['**/pictograms/sclera/*.png', '**/pictograms/makaton/*.png'],
+        runtimeCaching: [
+          { urlPattern: /\/pictograms\/sclera\/\d+\.png$/, handler: 'CacheFirst', options: { cacheName: 'sclera-images', expiration: { maxEntries: 12000 }, cacheableResponse: { statuses: [200] } } },
+          { urlPattern: /\/pictograms\/makaton\/\d+\.png$/, handler: 'CacheFirst', options: { cacheName: 'makaton-images', expiration: { maxEntries: 100 }, cacheableResponse: { statuses: [200] } } },
+        ],
         navigateFallback: 'index.html',
       },
     }),
