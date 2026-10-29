@@ -4,7 +4,6 @@ import {
 } from 'lucide-react'
 import { createEmptyBoard, type Board, type Cell, type FitzgeraldCategory, type Folder as TlaFolder, type PictogramResult, type PictogramBank } from './types'
 import { moveOrSwapCells, normalizeWords, placeWords, resizeBoard, restoreOverflowCell } from './domain/layout'
-import { boardTemplates, createTemplateBoard } from './domain/templates'
 import { bankName, searchBank, changeBoardBank, pictogramCredit } from './services/pictograms'
 import { boardRepository, folderRepository } from './services/storage'
 import { createBoardSaveQueue } from './services/saveQueue'
@@ -70,7 +69,6 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
   const [previewError, setPreviewError] = useState('')
-  const [offlineState, setOfflineState] = useState<{ total: number; cached: number; loading: boolean } | null>(null)
   const [storageInfo, setStorageInfo] = useState<{ used: number; quota: number; persistent: boolean } | null>(null)
   const [initialized, setInitialized] = useState(false)
   const [libraryBusy, setLibraryBusy] = useState(false)
@@ -83,25 +81,10 @@ function App() {
   const translationAbort = useRef<AbortController | null>(null)
   const bankAbort = useRef<AbortController | null>(null)
   const imageAbort = useRef<AbortController | null>(null)
-  const offlineAbort = useRef<AbortController | null>(null)
   const lastQueued = useRef(new Map<string, Board>())
   const localDrafts = useRef(new Map<string, Board>())
   const editVersions = useRef(new Map<string, number>())
   const previewCache = useRef<{ board: Board; blob: Blob } | null>(null)
-  const mediaCheck = useRef<{ id: string; images: (string | undefined)[] } | null>(null)
-  const mediaSequence = useRef(0)
-
-  useEffect(() => {
-    const source = boardRef.current
-    const images = [...source.cells, ...(source.overflowCells ?? [])].map((cell) => cell.imageData)
-    if (mediaCheck.current?.id === source.id && images.length === mediaCheck.current.images.length && images.every((value, index) => value === mediaCheck.current?.images[index])) return
-    mediaCheck.current = { id: source.id, images }
-    const sequence = ++mediaSequence.current
-    offlineAbort.current?.abort()
-    void import('./services/offline').then(({ checkBoardOffline }) => checkBoardOffline(boardRef.current)).then((result) => {
-      if (sequence === mediaSequence.current) setOfflineState({ ...result, loading: false })
-    }).catch(() => { if (sequence === mediaSequence.current) setOfflineState(null) })
-  }, [board.id, board.cells, board.overflowCells])
 
   useEffect(() => {
     let cancelled = false
@@ -171,7 +154,7 @@ function App() {
   }, [saveQueue])
 
   useEffect(() => {
-    return () => { mediaSequence.current += 1; searchAbort.current?.abort(); batchAbort.current?.abort(); translationAbort.current?.abort(); bankAbort.current?.abort(); imageAbort.current?.abort(); offlineAbort.current?.abort() }
+    return () => { searchAbort.current?.abort(); batchAbort.current?.abort(); translationAbort.current?.abort(); bankAbort.current?.abort(); imageAbort.current?.abort() }
   }, [])
 
   useEffect(() => {
@@ -263,8 +246,6 @@ function App() {
   const openSavedBoard = (savedBoard: Board) => {
     imageAbort.current?.abort()
     bankAbort.current?.abort()
-    offlineAbort.current?.abort()
-    setOfflineState(null)
     const snapshot = localDrafts.current.get(savedBoard.id) ?? savedBoard
     if (!localDrafts.current.has(snapshot.id)) lastQueued.current.set(snapshot.id, snapshot)
     setBoard(snapshot)
@@ -373,8 +354,6 @@ function App() {
     const next = { ...createEmptyBoard(board.rows, board.columns), pictogramBank: activeBank }
     imageAbort.current?.abort()
     bankAbort.current?.abort()
-    offlineAbort.current?.abort()
-    setOfflineState(null)
     editableBoardIds.current.add(next.id)
     setBoard(next)
     setHistory([])
@@ -732,20 +711,6 @@ function App() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'La restauration a échoué.') }
   }
 
-  const prepareOffline = async () => {
-    mediaSequence.current += 1
-    const source = boardRef.current
-    offlineAbort.current?.abort()
-    const controller = new AbortController()
-    offlineAbort.current = controller
-    setOfflineState({ total: 0, cached: 0, loading: true })
-    try {
-      const { prepareBoardOffline } = await import('./services/offline')
-      const result = await prepareBoardOffline(source, controller.signal, (progress) => { if (!controller.signal.aborted && boardRef.current.id === source.id) setOfflineState({ ...progress, loading: true }) })
-      if (!controller.signal.aborted && boardRef.current.id === source.id) { setOfflineState({ ...result, loading: false }); setSuccess('Les images de ce TLA sont prêtes pour une utilisation hors connexion sur cet appareil.') }
-    } catch (cause) { if (!isAbortError(cause)) { setOfflineState(null); setError(cause instanceof Error ? cause.message : 'La préparation hors connexion a échoué.') } }
-  }
-
   const protectStorage = async () => {
     try {
       if (!navigator.storage?.persist) { setError('Ce navigateur ne propose pas la protection du stockage. Conservez une sauvegarde ZIP.'); return }
@@ -813,11 +778,8 @@ function App() {
           <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA</button>
           <button className="sidebar-tool" onClick={() => { setListText(''); setBatchProposals([]); setBatchState('idle'); setInsertMode(board.cells.some((cell) => cell.label || cell.imageData) ? 'empty' : 'replace'); setPanel('list'); setMobileNav(false) }}><Sparkles size={16} /> Générer depuis une liste</button>
           <button className="sidebar-tool" onClick={() => duplicateBoard()}><FilePlus2 size={16} /> Dupliquer ce TLA</button>
-          <label className="template-picker"><span>Créer depuis un modèle</span><select aria-label="Créer un TLA depuis un modèle" value="" onChange={(event) => { const next = createTemplateBoard(event.target.value); if (next) { editableBoardIds.current.add(next.id); setBoard({ ...next, pictogramBank: activeBank }); setHistory([]); setFuture([]); setSelectedCellId(null); setSelectedCellIds([]); setLibraryFilter('recent'); setListText(next.cells.map((cell) => cell.label).filter(Boolean).join('\n')); setBatchProposals([]); setBatchState('idle'); setInsertMode('replace'); setPanel('list'); setSuccess('Modèle créé. Recherchez les pictogrammes proposés puis vérifiez les choix.') } }}><option value="">Choisir une activité…</option>{boardTemplates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
           <button className="sidebar-tool" aria-describedby="translation-information" onClick={() => void translateBoard()}><Languages size={16} /> Traduire le TLA complet</button>
           <p className="tool-information" id="translation-information">La traduction envoie le titre et les mots à MyMemory. Évitez les informations personnelles.</p>
-          <button className="sidebar-tool" disabled={offlineState?.loading} onClick={() => void prepareOffline()}><ArrowDownToLine size={16} /> {offlineState?.loading ? `Préparation ${offlineState.cached}/${offlineState.total}…` : 'Préparer hors connexion'}</button>
-          {offlineState && !offlineState.loading && <p className="tool-information" role="status">{offlineState.cached}/{offlineState.total} images disponibles sur cet appareil.</p>}
         </>}
         {sidebarTab === 'edit' && <section className="selection-panel">
           <div className="section-label"><span>Texte · {selectedCells.length}</span><button className="mini-button" title="Effacer la sélection" aria-label="Effacer la sélection" onClick={() => { setSelectedCellIds([]); setSelectedCellId(null) }}><X size={15} /></button></div>

@@ -6,7 +6,7 @@ Node.js 22.12 ou plus récent est nécessaire. `npm ci` installe les versions v�
 
 L’éditeur conserve la vue continue des TLA et ne monte les pages éloignées que lorsqu’elles approchent de l’écran. La bibliothèque permet de rechercher un titre ou un mot, de filtrer les tableaux, de consulter leurs miniatures et de restaurer la corbeille. Le dernier TLA ouvert est repris au démarrage.
 
-Le panneau **Modifier** propose la duplication, des modèles par activité, l’insertion dans les cases vides et le choix des variantes avant insertion en lot. Une réduction de grille conserve les cases retirées avec leurs images et styles dans une réserve ; agrandir la grille ou utiliser **Réinsérer** permet de les retrouver. Le déplacement est aussi disponible par une liste de positions, au clavier ou au toucher.
+Le panneau **Modifier** propose la duplication, l’insertion dans les cases vides et le choix des variantes avant insertion en lot. Une réduction de grille conserve les cases retirées avec leurs images et styles dans une réserve ; agrandir la grille ou utiliser **Réinsérer** permet de les retrouver. Le déplacement est aussi disponible par une liste de positions, au clavier ou au toucher.
 
 ## Tester sur le réseau local
 
@@ -40,7 +40,7 @@ La version de production est installable depuis le navigateur et met en cache l�
 
 Après le déploiement, ouvrez l’adresse dans Chrome ou Edge et choisissez **Installer TLA Flash** depuis le menu du navigateur. Sur iPhone/iPad, utilisez **Partager > Sur l’écran d’accueil** dans Safari.
 
-Dans **Modifier**, **Préparer hors connexion** télécharge les images du TLA et de sa réserve, y compris celles d’ARASAAC, et indique le nombre de médias disponibles. Cela prépare le tableau choisi, sans télécharger toute la banque. Les images restent soumises au stockage conservé par le navigateur. **Protéger le stockage local** permet de demander la persistance ; le navigateur peut la refuser. Conservez aussi une sauvegarde ZIP indépendante.
+Les images déjà consultées sont mises en cache pour une utilisation hors connexion, selon le stockage conservé par le navigateur. **Protéger le stockage local** permet de demander la persistance ; le navigateur peut la refuser. Conservez aussi une sauvegarde ZIP indépendante.
 
 ## Sauvegarder les TLA
 
