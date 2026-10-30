@@ -1,0 +1,222 @@
+-- Native TD Snap 4.20 schema only. All test records are synthetic.
+CREATE TABLE "Button"(
+"Id" integer primary key autoincrement not null ,
+"LabelOwnership" integer ,
+"ImageOwnership" integer ,
+"LinkIndicatorStyle" integer ,
+"ContentTag" varchar ,
+"UniqueId" varchar(36) ,
+"LibrarySymbolId" integer ,
+"PageSetImageId" integer ,
+"SymbolColorDataId" integer ,
+"MessageRecordingId" integer ,
+"ElementReferenceId" integer ,
+"SerializedMessageSoundMetadata" varchar ,
+"Label" varchar ,
+"Message" varchar ,
+"BorderColor" integer ,
+"BorderThickness" float ,
+"FontFamily" varchar ,
+"FontSize" float ,
+"FontStyle" integer ,
+"SmartSymLayout" integer ,
+"CommandFlags" integer ,
+"ContentType" integer ,
+"SerializedContentTypeHandler" varchar ,
+"UseMessageRecording" integer ,
+"ActiveContentType" integer );
+CREATE TABLE ButtonPageLink( Id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, ButtonId INTEGER NOT NULL, PageUniqueId varchar(36) NOT NULL, FOREIGN KEY(ButtonId) REFERENCES Button(Id) ON DELETE CASCADE);
+CREATE TABLE "ButtonUsage"(
+"Id" integer primary key autoincrement not null ,
+"Timestamp" bigint ,
+"ButtonUniqueId" varchar(36) ,
+"Modeling" integer ,
+"AccessMethod" integer ,
+"BlockId" integer );
+CREATE TABLE "ButtonUsageBlock"(
+"Id" integer primary key autoincrement not null ,
+"UniqueId" varchar(36) ,
+"StartTime" bigint ,
+"Timestamp" bigint ,
+"SyncHash" integer );
+CREATE TABLE "CommandSequence"(
+"Id" integer primary key autoincrement not null ,
+"SerializedCommands" varchar ,
+"ButtonId" integer );
+CREATE TABLE "ElementPlacement"(
+"Id" integer primary key autoincrement not null ,
+"GridPosition" varchar ,
+"Visible" integer ,
+"ElementReferenceId" integer ,
+"PageLayoutId" integer ,
+"GridSpan" varchar not null );
+CREATE TABLE "ElementReference"(
+"Id" integer primary key autoincrement not null ,
+"Language" varchar ,
+"AudioCue" varchar ,
+"UseAudioCueRecording" integer ,
+"ForegroundColor" integer ,
+"BackgroundColor" integer ,
+"AudioCueRecordingId" integer ,
+"SerializedAudioCueSoundMetadata" varchar ,
+"SerializedAccessSettingOverrides" varchar ,
+"PageId" integer ,
+"ElementType" integer );
+CREATE TABLE "MessageWindowElement"(
+"Id" integer primary key autoincrement not null ,
+"UseSymbols" integer ,
+"ElementReferenceId" integer );
+CREATE TABLE "Page"(
+"Id" integer primary key autoincrement not null ,
+"UniqueId" varchar(36) ,
+"Title" varchar ,
+"PageType" integer ,
+"Language" varchar ,
+"BackgroundColor" integer ,
+"ContentTag" varchar ,
+"Timestamp" bigint ,
+"SyncHash" integer ,
+"SerializedMetadata" varchar ,
+"VocabPlannerForcedVisible" integer ,
+"LibrarySymbolId" integer ,
+"PageSetImageId" integer ,
+"GridDimension" varchar ,
+"MessageBarVisible" integer ,
+"SceneVisible" integer ,
+"GridVisible" integer ,
+"SerializedSymbolPersonColors" varchar ,
+"SymbolColorDataId" integer );
+CREATE TABLE PageExtra ( Id INTEGER PRIMARY KEY, AccessedAt BIGINT, FOREIGN KEY(Id) REFERENCES Page(Id) ON DELETE CASCADE);
+CREATE TABLE "PageLayout"(
+"Id" integer primary key autoincrement not null ,
+"PageLayoutSetting" varchar ,
+"PageId" integer );
+CREATE TABLE "PageSetData"(
+"RefCount" integer ,
+"Id" integer primary key autoincrement not null ,
+"Identifier" varchar ,
+"Data" blob );
+CREATE TABLE "PageSetProperties"(
+"Id" integer primary key autoincrement not null ,
+"ContentIdentifier" varchar ,
+"ContentVersion" varchar ,
+"SchemaVersion" varchar ,
+"UniqueId" varchar(36) ,
+"Language" varchar ,
+"Timestamp" bigint ,
+"SyncHash" integer ,
+"DefaultHomePageUniqueId" varchar(36) ,
+"SerializedHomePageUniqueIdOverrides" blob ,
+"DefaultKeyboardPageUniqueId" varchar(36) ,
+"SerializedKeyboardPageUniqueIdOverrides" blob ,
+"ToolBarUniqueId" varchar(36) ,
+"DashboardUniqueId" varchar(36) ,
+"MessageBarUniqueId" varchar(36) ,
+"MessageBarVisible" integer ,
+"ToolbarLocation" integer ,
+"GridVisible" integer ,
+"SceneVisible" integer ,
+"FriendlyName" varchar ,
+"Description" varchar ,
+"IconImageId" integer ,
+"SerializedPreferredGridDimensions" varchar ,
+"GridDimension" varchar ,
+"SmartSymLayout" integer ,
+"FontFamily" varchar ,
+"FontSize" float ,
+"FontStyle" integer ,
+"PageBackgroundColor" integer ,
+"MessageBarBackgroundColor" integer ,
+"MessageWindowBackgroundColor" integer ,
+"MessageWindowHighlightColor" integer ,
+"ToolBarBackgroundColor" integer ,
+"MessageWindowTextColor" integer ,
+"MessageWindowFontSize" float ,
+"GridMarginFactor" float ,
+"LinkIndicatorStyle" integer ,
+"LinkIndicatorCornerTabColor" integer ,
+"SerializedOffscreenButton1Commands" varchar ,
+"SerializedOffscreenButton2Commands" varchar ,
+"ToolBarGridDimension" varchar ,
+"PreferNavigationButtons" integer ,
+"MessageWindowFontFamily" varchar ,
+"SerializedPagePageSetScanGroup" varchar ,
+"SerializedToolbarPageSetScanGroup" varchar ,
+"SerializedMessageBarPageSetScanGroup" varchar ,
+"SerializedSymbolPersonColors" varchar ,
+"VocabPlannerEnabled" integer ,
+"VocabPlannerCurrentListUniqueId" varchar(36) ,
+"AutomorphingModel" integer ,
+"CapabilityFlags" integer ,
+"SerializedConfigurationInfo" varchar ,
+"ButtonSearchAllowDuplicateMatches" integer ,
+"ButtonSearchShowHiddenPaths" integer ,
+"ButtonSearchPathIsAccessible" integer ,
+"SerializedLanguageSettingsCollection" varchar ,
+"SerializedScrollButtonStyle" varchar ,
+"SerializedPageSetDefaults" varchar );
+CREATE TABLE "ScanGroup"(
+"Id" integer primary key autoincrement not null ,
+"Name" varchar ,
+"ScanOrder" integer ,
+"StayInside" integer ,
+"Color" integer ,
+"AudioCue" varchar ,
+"UseAudioCueRecording" integer ,
+"SerializedGridPositions" varchar ,
+"AudioCueRecordingId" integer ,
+"SerializedAudioCueSoundMetadata" varchar ,
+"PageLayoutId" integer );
+CREATE TABLE "SymbolColorData"(
+"Id" integer primary key autoincrement not null ,
+"SerializedFromColors" varchar ,
+"SerializedToColors" varchar ,
+"Identifier" varchar );
+CREATE TABLE "SyncData"(
+"UniqueId" varchar(36) primary key not null ,
+"Type" integer ,
+"Timestamp" bigint ,
+"SyncHash" integer ,
+"Deleted" integer ,
+"Description" varchar );
+CREATE TABLE "Synchronization"(
+"Id" integer primary key autoincrement not null ,
+"SyncServerIdentifier" varchar ,
+"PageSetTimestamp" bigint ,
+"PageSetSyncHash" integer );
+CREATE TABLE "VocabList"(
+"Id" integer primary key autoincrement not null ,
+"UniqueId" varchar(36) not null ,
+"Name" varchar ,
+"Timestamp" bigint ,
+"SyncHash" integer );
+CREATE TABLE "VocabListEntry"(
+"Id" integer primary key autoincrement not null ,
+"Text" varchar ,
+"VocabListId" integer );
+CREATE TABLE "Whiteboard"(
+"Id" integer primary key autoincrement not null ,
+"UniqueId" varchar(36) not null ,
+"ThumbnailImageId" integer ,
+"Timestamp" bigint ,
+"SyncHash" integer );
+CREATE TABLE "WhiteboardDoodlePath"(
+"Id" integer primary key autoincrement not null ,
+"ScaleX" float ,
+"ScaleY" float ,
+"PositionX" float ,
+"PositionY" float ,
+"Rotation" float ,
+"SerializedPath" varchar ,
+"SerializedPaint" varchar ,
+"WhiteboardId" integer );
+CREATE TABLE "WhiteboardImage"(
+"Id" integer primary key autoincrement not null ,
+"UniqueId" varchar(36) not null ,
+"ScaleX" float ,
+"ScaleY" float ,
+"PositionX" float ,
+"PositionY" float ,
+"Rotation" float ,
+"PageSetImageId" integer ,
+"WhiteboardId" integer );

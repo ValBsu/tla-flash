@@ -1,0 +1,21 @@
+{
+  "id": "cd135e9a-59f7-48b0-89dc-439ba5ff6936",
+  "title": "TLA Flash — Test iPad",
+  "pictogramBank": "sclera",
+  "status": "draft",
+  "pageSize": "A4",
+  "orientation": "landscape",
+  "rows": 2,
+  "columns": 3,
+  "cells": [
+    { "id": "8f809653-b39b-4986-aa5b-ec2b20a00777", "row": 0, "column": 0, "source": "sclera", "pictogramId": 1782, "label": "boire", "category": "verbs", "colorOverride": "#65b96d", "essential": false, "favorite": false },
+    { "id": "f9d52342-22c2-44cf-aac7-31299f41baab", "row": 0, "column": 1, "source": "sclera", "pictogramId": 6627, "label": "manger", "category": "verbs", "colorOverride": "#65b96d", "essential": false, "favorite": false },
+    { "id": "510ad977-a0a7-4f0f-bae7-f757ba7fbc8f", "row": 0, "column": 2, "source": "sclera", "pictogramId": 4081, "label": "eau", "category": "nouns", "colorOverride": "#ed9a55", "essential": false, "favorite": false },
+    { "id": "2242cfdf-7255-4c0e-937a-64f1c563f555", "row": 1, "column": 0, "source": "sclera", "pictogramId": 3742, "label": "bonjour", "category": "social", "colorOverride": "#d88ab6", "essential": false, "favorite": false },
+    { "id": "396542d3-f346-4530-b550-99516c09c588", "row": 1, "column": 1, "source": "sclera", "pictogramId": 3748, "label": "oui", "category": "social", "colorOverride": "#d88ab6", "essential": false, "favorite": false },
+    { "id": "5c0975dc-3bd2-4c49-970c-f100e9f53f1f", "row": 1, "column": 2, "source": "sclera", "pictogramId": 3745, "label": "non", "category": "social", "colorOverride": "#d88ab6", "essential": false, "favorite": false }
+  ],
+  "overflowWords": [],
+  "createdAt": "2026-10-29T00:00:00.000Z",
+  "updatedAt": "2026-10-29T00:00:00.000Z"
+}

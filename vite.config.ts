@@ -5,6 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1]
 
 export default defineConfig({
+  // Prepare the lazy SQLite dependency before the first export. Discovering it
+  // on click can invalidate optimized module URLs already cached by Safari.
+  optimizeDeps: { include: ['sql.js'] },
   plugins: [
     react(),
     VitePWA({
@@ -27,7 +30,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2}', '**/pictograms/sclera/index.json', '**/pictograms/makaton/index.json'],
+        globPatterns: ['**/*.{css,html,ico,js,png,svg,woff2,wasm,spb}', '**/pictograms/sclera/index.json', '**/pictograms/makaton/index.json'],
         globIgnores: ['**/pictograms/sclera/*.png', '**/pictograms/makaton/*.png'],
         runtimeCaching: [
           // Bump image cache versions when replacing a bank under unchanged filenames.

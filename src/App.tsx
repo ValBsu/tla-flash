@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Archive, ArrowDownToLine, Bold, Check, ChevronDown, Contrast, FilePlus2, Folder, ImagePlus, Languages, LayoutGrid, Menu, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
+  Archive, ArrowDownToLine, Bold, Check, ChevronDown, Contrast, FileDown, FilePlus2, Folder, ImagePlus, Languages, LayoutGrid, Menu, Pencil, Plus, Redo2, Search, Share2, Sparkles, Trash2, Undo2, Upload, X,
 } from 'lucide-react'
 import { createEmptyBoard, type Board, type Cell, type FitzgeraldCategory, type Folder as TlaFolder, type PictogramResult, type PictogramBank } from './types'
 import { moveOrSwapCells, normalizeWords, placeWords, resizeBoard, restoreOverflowCell } from './domain/layout'
@@ -42,7 +42,7 @@ function App() {
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>('recent')
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
   const [selectedCellIds, setSelectedCellIds] = useState<string[]>([])
-  const [sidebarTab, setSidebarTab] = useState<'pictograms' | 'library' | 'edit'>('pictograms')
+  const [sidebarTab, setSidebarTab] = useState<'library' | 'edit'>('edit')
   const [panel, setPanel] = useState<'none' | 'search' | 'list' | 'preview' | 'translation'>('none')
   const [searchTerm, setSearchTerm] = useState('')
   const [results, setResults] = useState<PictogramResult[]>([])
@@ -68,6 +68,8 @@ function App() {
   const [insertMode, setInsertMode] = useState<'replace' | 'empty'>('replace')
   const [previewUrl, setPreviewUrl] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
+  const [tdSnapBusy, setTdSnapBusy] = useState(false)
+  const tdSnapBusyRef = useRef(false)
   const [previewError, setPreviewError] = useState('')
   const [storageInfo, setStorageInfo] = useState<{ used: number; quota: number; persistent: boolean } | null>(null)
   const [initialized, setInitialized] = useState(false)
@@ -360,7 +362,7 @@ function App() {
     setFuture([])
     setSelectedCellId(null)
     setSelectedCellIds([])
-    setSidebarTab('library')
+    setSidebarTab('edit')
     setLibraryFilter('recent')
     setBatchProposals([])
     setBatchState('idle')
@@ -689,6 +691,29 @@ function App() {
     finally { setPdfBusy(false) }
   }
 
+  const exportTdSnap = async () => {
+    if (tdSnapBusyRef.current || libraryBusyRef.current || switchingBank || pdfBusy || !initialized) return
+    const snapshot = boardRef.current
+    tdSnapBusyRef.current = true
+    setTdSnapBusy(true)
+    setError('')
+    setSuccess('')
+    try {
+      const { createTdSnapExport } = await import('./services/tdSnap').catch(() => {
+        throw new Error('Le module d’export TD Snap n’a pas pu être chargé. Actualisez la page, puis réessayez.')
+      })
+      const { blob, filename, pageTitle } = await createTdSnapExport(snapshot)
+      const { saveAs } = await import('file-saver')
+      saveAs(blob, filename)
+      setSuccess(`Téléchargement de ${filename} lancé. À l’import dans TD Snap, remplace la page « ${pageTitle} ». Chaque nouvel export utilise cette même page et remplacera son contenu à l’import.`)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'L’export vers TD Snap a échoué. Réessayez.')
+    } finally {
+      tdSnapBusyRef.current = false
+      setTdSnapBusy(false)
+    }
+  }
+
   const duplicateBoard = (source = boardRef.current) => {
     const now = new Date().toISOString()
     const next = { ...source, id: crypto.randomUUID(), revision: undefined, title: `${source.title} (copie)`, createdAt: now, updatedAt: now, cells: source.cells.map((cell) => ({ ...cell, id: crypto.randomUUID() })), overflowCells: source.overflowCells?.map((cell) => ({ ...cell, id: crypto.randomUUID() })) }
@@ -753,28 +778,26 @@ function App() {
         <button className="icon-button" title="Rétablir" aria-label="Rétablir" onClick={redo} disabled={!future.length || libraryBusy}><Redo2 size={18} /></button>
         <button className="toolbar-button" aria-label="Aperçu PDF" disabled={pdfBusy || libraryBusy} onClick={() => setPanel('preview')}><LayoutGrid size={16} /> Aperçu</button>
         <button className="toolbar-button secondary" aria-label="Partager le PDF" disabled={pdfBusy || libraryBusy} onClick={() => void shareBoard()}><Share2 size={16} /> Partager</button>
+        <button className="toolbar-button secondary td-snap-export" aria-label="Exporter vers TD Snap" title="Télécharger le TLA au format TD Snap (.spb)" aria-busy={tdSnapBusy} disabled={tdSnapBusy || pdfBusy || libraryBusy || switchingBank || !initialized} onClick={() => void exportTdSnap()}><FileDown size={16} /> {tdSnapBusy ? 'Préparation…' : 'Exporter vers TD Snap'}</button>
         <button className="primary-button" disabled={pdfBusy || libraryBusy} onClick={() => void printBoard()}><ArrowDownToLine size={16} /> {pdfBusy ? 'Préparation…' : 'Imprimer'}</button>
       </div>
     </header>
     <div className="workspace">
       <aside inert={libraryBusy} className={`sidebar ${mobileNav ? 'sidebar-open' : ''} ${sidebarTab !== 'library' ? 'sidebar-editing' : ''}`}>
-        <div className="sidebar-header"><span>{sidebarTab === 'pictograms' ? 'Pictogrammes' : sidebarTab === 'edit' ? 'Modifier' : 'Bibliothèque'}</span><button className="icon-button close-mobile" aria-label="Fermer le menu" onClick={() => setMobileNav(false)}><X size={18} /></button></div>
+        <div className="sidebar-header"><span>{sidebarTab === 'edit' ? 'Modifier' : 'Bibliothèque'}</span><button className="icon-button close-mobile" aria-label="Fermer le menu" onClick={() => setMobileNav(false)}><X size={18} /></button></div>
         <div className="sidebar-tabs" role="group" aria-label="Panneaux latéraux">
-          <button className={`pictograms-tab ${sidebarTab === 'pictograms' ? 'active' : ''}`} aria-pressed={sidebarTab === 'pictograms'} onClick={() => setSidebarTab('pictograms')}><ImagePlus size={15} /> Pictogrammes <small>{bankName(activeBank)}</small></button>
           <button aria-pressed={sidebarTab === 'edit'} className={sidebarTab === 'edit' ? 'active' : ''} onClick={() => setSidebarTab('edit')}>Modifier <span>{selectedCellIds.length || ''}</span></button>
           <button aria-pressed={sidebarTab === 'library'} className={sidebarTab === 'library' ? 'active' : ''} onClick={() => setSidebarTab('library')}>Bibliothèque</button>
         </div>
-        {sidebarTab === 'pictograms' && <section className="pictogram-banks" aria-label="Banque de pictogrammes">
-          <h2>Les pictos de mon TLA</h2>
-          <p>Choisissez la banque de pictogrammes à utiliser pour ce TLA.</p>
-          <div className="bank-options">
-            {(['arasaac', 'sclera', 'makaton'] as const).map((bank) => <button type="button" key={bank} aria-label={`${bankName(bank)} ${activeBank === bank ? "Banque de ce TLA" : "Choisir pour ce TLA"}`} className={`bank-option ${activeBank === bank ? 'selected' : ''}`} aria-pressed={activeBank === bank} disabled={switchingBank} onClick={() => void switchBank(bank)}><span><strong>{bankName(bank)}</strong><small>{activeBank === bank ? 'Banque de ce TLA' : 'Choisir pour ce TLA'}</small></span>{activeBank === bank && <Check size={18} />}</button>)}
-            <button type="button" className="bank-option" disabled><span><strong>Milmo</strong><small>Banque à venir</small></span><span className="bank-status">À venir</span></button>
-          </div>
-          <p className="bank-help">{switchingBank ? 'Recherche des pictogrammes en cours…' : 'Le choix est enregistré pour ce TLA. Sans correspondance, seul le mot est affiché. Les photos personnelles sont conservées.'}</p>
-          <button type="button" className="new-board bank-continue" onClick={() => setSidebarTab('edit')}><Pencil size={16} /> Modifier mon TLA</button>
-        </section>}
         {sidebarTab === 'edit' && <>
+          <label className={`bank-picker ${switchingBank ? 'is-loading' : ''}`}>
+            <ImagePlus size={16} aria-hidden="true" /><span>Pictogrammes</span><strong aria-hidden="true">{bankName(activeBank)}</strong><ChevronDown size={15} aria-hidden="true" />
+            <select aria-label="Banque de pictogrammes" aria-describedby="bank-picker-help" aria-busy={switchingBank} value={activeBank} disabled={switchingBank} onChange={(event) => void switchBank(event.target.value as PictogramBank)}>
+              {(['arasaac', 'sclera', 'makaton'] as const).map((bank) => <option key={bank} value={bank}>{bankName(bank)}</option>)}
+              <option value="milmo" disabled>Milmo — À venir</option>
+            </select>
+          </label>
+          <p className="bank-picker-help" id="bank-picker-help" aria-live="polite">{switchingBank ? 'Recherche des pictogrammes en cours…' : 'Ce choix s’applique à ce TLA. Les photos sont conservées.'}</p>
           <button className="new-board" onClick={createBoard}><FilePlus2 size={17} /> Nouveau TLA</button>
           <button className="sidebar-tool" onClick={() => { setListText(''); setBatchProposals([]); setBatchState('idle'); setInsertMode(board.cells.some((cell) => cell.label || cell.imageData) ? 'empty' : 'replace'); setPanel('list'); setMobileNav(false) }}><Sparkles size={16} /> Générer depuis une liste</button>
           <button className="sidebar-tool" onClick={() => duplicateBoard()}><FilePlus2 size={16} /> Dupliquer ce TLA</button>

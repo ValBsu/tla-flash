@@ -56,6 +56,12 @@ La traduction en anglais utilise le service public MyMemory et nécessite une co
 
 **Aperçu** affiche le PDF réellement généré. Les légendes longues sont ajustées à leur zone, les cases vides sont conservées et une image manquante empêche l’export avec un message indiquant les cases concernées. Vérifiez la lisibilité dans l’aperçu, en particulier pour les grilles denses. La bibliothèque peut exporter les TLA affichés ou un dossier en un PDF multipage.
 
+**Exporter vers TD Snap**, à côté du premier bouton **Partager**, télécharge directement le TLA ouvert sous le nom `Titre du TLA.spb`. Aucun choix de fichier d’origine n’est demandé : l’application réutilise automatiquement la base personnelle **Arasaac** fournie par l’utilisateur et validée sur son iPad. Les mots, les positions, les couleurs et les images sont intégrés ; les cases vides gardent leur place. Une image inaccessible interrompt l’export avec un message pour éviter un fichier incomplet. Le traitement se fait localement dans le navigateur ; le TLA n’est pas téléversé. Le dossier d’arrivée dépend des réglages du navigateur : dans Safari, choisir **Réglages > Général > Emplacement de téléchargement des fichiers > Téléchargements** pour ne pas demander un dossier à chaque export.
+
+Sur l’iPad, copiez le résultat dans le dossier existant **Fichiers > Sur mon iPad > TD Snap**, selon cette [procédure iPad](https://yakback.org/installation/). Dans TD Snap : **Édition > Page > Importer/Exporter des pages > Importer un sous-ensemble de pages > À partir d’un fichier local**. Sélectionnez uniquement **Arasaac** et acceptez son remplacement. **Tous les fichiers exportés ciblent cette même page : importer un autre TLA y remplace le contenu précédent.** Le nom du fichier change avec le TLA, mais le nom et l’identité de la page TD Snap restent Arasaac. Cette limite est indiquée dans la confirmation du téléchargement.
+
+Cette méthode a été confirmée fonctionnelle par l’utilisateur sur iPad avec sa page **Arasaac**. L’exporteur conserve les identités, titres et métadonnées des pages ainsi que les paramètres de l’ensemble ; il ne crée pas de nouvelle identité de page. Les autres pages du fichier sont conservées. La base intégrée conserve le schéma natif 4.20. La génération autonome de nouvelles pages distinctes reste hors périmètre : le premier prototype changeait l’identité de la page et avait entraîné une erreur de licence, sans lien établi avec les pictogrammes ARASAAC. Voir [la provenance de la base personnelle](src/assets/td-snap-personal-base.md).
+
 ## Commandes
 
 ```bash
@@ -81,7 +87,7 @@ Le partage dépend du navigateur. ARASAAC nécessite une connexion au moment d�
 
 ### Banque Sclera
 
-Le panneau Pictogrammes propose ARASAAC et Sclera. Le choix est enregistré par TLA ; les anciennes sauvegardes utilisent ARASAAC par défaut. Changer de banque recherche une nouvelle image pour chaque case contenant un mot, conserve sa mise en forme et préserve les photos importées. Une absence de résultat laisse seulement le mot. En cas d’erreur réseau, le changement complet est annulé.
+L’application ouvre directement le panneau **Modifier**. Son menu déroulant **Pictogrammes** propose ARASAAC, Sclera et Makaton. Le choix est enregistré par TLA ; les anciennes sauvegardes utilisent ARASAAC par défaut. Changer de banque recherche une nouvelle image pour chaque case contenant un mot, conserve sa mise en forme et préserve les photos importées. Une absence de résultat laisse seulement le mot. En cas d’erreur réseau, le changement complet est annulé.
 
 La banque française provient de https://www.sclera.be/resources/download/picto_fr.zip. Les PNG originaux sont conservés sous `public/pictograms/sclera/`, avec des identifiants locaux et un index des noms français. Attribution : www.sclera.be, licence CC BY-NC 2.0 Belgique (voir `LICENSE.txt` dans ce dossier). Les images représentent environ 75 Mo sur l’hébergement, mais ne sont pas téléchargées en bloc au démarrage. Aucune clé API n’est nécessaire.
 
@@ -89,4 +95,4 @@ La version de production met l’index en cache avec l’application et conserve
 
 ### Banque Makaton
 
-Le panneau Pictogrammes propose aussi la banque Makaton Niveau 1 fournie par l’utilisateur. Les 69 fichiers PNG sont intégrés sous `public/pictograms/makaton/` et recherchables par mot, avec prise en compte des accents et variantes du même pictogramme. L’utilisateur a confirmé l’autorisation d’intégrer et publier ces fichiers. Les images sont incluses dans le déploiement et téléchargées à la demande, pas en bloc au démarrage. Attribution dans le PDF : Makaton — Niveau 1 (fichiers fournis par l’utilisateur).
+Le menu **Pictogrammes** propose aussi la banque Makaton Niveau 1 fournie par l’utilisateur. Les 69 fichiers PNG sont intégrés sous `public/pictograms/makaton/` et recherchables par mot, avec prise en compte des accents et variantes du même pictogramme. L’utilisateur a confirmé l’autorisation d’intégrer et publier ces fichiers. Les images sont incluses dans le déploiement et téléchargées à la demande, pas en bloc au démarrage. Attribution dans le PDF : Makaton — Niveau 1 (fichiers fournis par l’utilisateur).

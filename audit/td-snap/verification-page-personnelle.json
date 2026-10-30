@@ -1,0 +1,15 @@
+{
+  "file": "TLA Flash - essai page Arasaac.spb",
+  "bytes": 331776,
+  "schema": "4.20",
+  "target_page": "Arasaac",
+  "grid": "5×4",
+  "buttons": 10,
+  "embedded_images": 10,
+  "native_page_identities_and_metadata": "unchanged",
+  "native_page_set_settings": "unchanged",
+  "other_pages_and_message_bar": "unchanged",
+  "TLA_labels_positions_colors_images": "exact match",
+  "sqlite_integrity": "ok",
+  "iPad_import_and_licence_validation": "user confirmed working on 2026-10-30"
+}

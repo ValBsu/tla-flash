@@ -8,9 +8,13 @@ const repositories = vi.hoisted(() => ({
   folders: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
 }))
 const pdfService = vi.hoisted(() => ({ export: vi.fn(), exportMany: vi.fn() }))
+const tdSnapService = vi.hoisted(() => ({ createExport: vi.fn() }))
+const fileSaver = vi.hoisted(() => ({ saveAs: vi.fn() }))
 const imageService = vi.hoisted(() => ({ read: vi.fn() }))
 vi.mock('./services/storage', () => ({ boardRepository: repositories.boards, folderRepository: repositories.folders }))
 vi.mock('./services/pdf', () => ({ exportBoardPdf: pdfService.export, exportBoardsPdf: pdfService.exportMany }))
+vi.mock('./services/tdSnap', () => ({ createTdSnapExport: tdSnapService.createExport }))
+vi.mock('file-saver', () => ({ saveAs: fileSaver.saveAs }))
 vi.mock('./services/images', () => ({ readImportedImage: imageService.read }))
 import App from './App'
 
@@ -26,6 +30,9 @@ beforeEach(() => {
   repositories.folders.list.mockResolvedValue([])
   repositories.folders.remove.mockResolvedValue([])
   pdfService.export.mockResolvedValue(new Blob(['pdf'], { type: 'application/pdf' }))
+  tdSnapService.createExport.mockImplementation(async (board: Board) => ({
+    blob: new Blob(['snap'], { type: 'application/octet-stream' }), filename: `${board.title}.spb`, pageTitle: 'Arasaac',
+  }))
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => scleraIndex }))
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
@@ -33,6 +40,67 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('commandes propres à chaque TLA', () => {
+  it('place l’export TD Snap juste après le premier bouton Partager', async () => {
+    render(<App />)
+    const exportButton = screen.getByRole('button', { name: 'Exporter vers TD Snap' })
+    expect(exportButton.previousElementSibling).toBe(screen.getAllByRole('button', { name: 'Partager le PDF' })[0])
+    expect(exportButton.textContent).toContain('Exporter vers TD Snap')
+    await waitFor(() => expect((exportButton as HTMLButtonElement).disabled).toBe(false))
+  })
+
+  it('télécharge directement le TLA en cours en .spb avec ses dernières modifications', async () => {
+    const first = { ...createEmptyBoard(1, 1), title: 'Premier tableau', createdAt: '2020-01-01T00:00:00.000Z' }
+    const current = { ...createEmptyBoard(1, 1), title: 'Tableau en cours', createdAt: '2021-01-01T00:00:00.000Z' }
+    repositories.boards.list.mockResolvedValue([first, current])
+    localStorage.setItem('tla-flash-active-board', current.id)
+    const blob = new Blob(['SQLite TD Snap'], { type: 'application/octet-stream' })
+    tdSnapService.createExport.mockResolvedValue({ blob, filename: 'Tableau modifié.spb', pageTitle: 'Arasaac' })
+    render(<App />)
+    fireEvent.change(await screen.findByDisplayValue('Tableau en cours'), { target: { value: 'Tableau modifié' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Exporter vers TD Snap' }))
+    await waitFor(() => expect(fileSaver.saveAs).toHaveBeenCalledWith(blob, 'Tableau modifié.spb'))
+    expect(tdSnapService.createExport).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: current.id, title: 'Tableau modifié' }))
+    expect(screen.queryByRole('dialog', { name: 'Exporter vers TD Snap' })).toBeNull()
+    expect(screen.queryByLabelText('Fichier de la page personnelle TD Snap')).toBeNull()
+    expect((await screen.findByText(/^Téléchargement de Tableau modifié.spb lancé/)).textContent).toContain('Chaque nouvel export utilise cette même page')
+  })
+
+  it('conserve le tableau et le nom capturés au clic et évite les exports simultanés', async () => {
+    let finishExport!: (result: { blob: Blob; filename: string; pageTitle: string }) => void
+    tdSnapService.createExport.mockReturnValue(new Promise<{ blob: Blob; filename: string; pageTitle: string }>((resolve) => { finishExport = resolve }))
+    render(<App />)
+    const exportButton = screen.getByRole('button', { name: 'Exporter vers TD Snap' })
+    await waitFor(() => expect((exportButton as HTMLButtonElement).disabled).toBe(false))
+    const title = screen.getByRole('textbox', { name: 'Titre du TLA 1' })
+    fireEvent.change(title, { target: { value: 'Titre au clic' } })
+    fireEvent.click(exportButton)
+    fireEvent.click(exportButton)
+    await waitFor(() => expect(tdSnapService.createExport).toHaveBeenCalledOnce())
+    expect((exportButton as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(title, { target: { value: 'Titre pendant préparation' } })
+    const blob = new Blob(['snap'])
+    finishExport({ blob, filename: 'Titre au clic.spb', pageTitle: 'Arasaac' })
+    await waitFor(() => expect(fileSaver.saveAs).toHaveBeenCalledWith(blob, 'Titre au clic.spb'))
+    expect(tdSnapService.createExport).toHaveBeenCalledWith(expect.objectContaining({ title: 'Titre au clic' }))
+    await waitFor(() => expect((exportButton as HTMLButtonElement).disabled).toBe(false))
+  })
+
+  it('signale un échec d’export TD Snap et permet de réessayer', async () => {
+    tdSnapService.createExport.mockRejectedValueOnce(new Error('Une image du TLA est inaccessible.'))
+    render(<App />)
+    const exportButton = screen.getByRole('button', { name: 'Exporter vers TD Snap' })
+    await waitFor(() => expect((exportButton as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(exportButton)
+    expect((await screen.findByRole('alert')).textContent).toContain('Une image du TLA est inaccessible.')
+    expect(fileSaver.saveAs).not.toHaveBeenCalled()
+    expect((exportButton as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(exportButton)
+    await screen.findByText(/^Téléchargement de .* lancé. À l’import dans TD Snap, remplace la page/)
+    expect(tdSnapService.createExport).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(fileSaver.saveAs).toHaveBeenCalledOnce()
+  })
+
   it('ouvre la fenêtre d’impression au clic et imprime après chargement du PDF', async () => {
     repositories.boards.list.mockResolvedValue([])
     repositories.folders.list.mockResolvedValue([])
@@ -114,8 +182,9 @@ describe('choix de la banque de pictogrammes', () => {
     repositories.boards.list.mockResolvedValue([])
     repositories.folders.list.mockResolvedValue([])
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /Makaton Choisir pour ce TLA/ }))
-    await waitFor(() => expect(screen.getByRole('button', { name: /Makaton Banque de ce TLA/ }).getAttribute('aria-pressed')).toBe('true'))
+    const bank = screen.getByRole('combobox', { name: 'Banque de pictogrammes' }) as HTMLSelectElement
+    fireEvent.change(bank, { target: { value: 'makaton' } })
+    await waitFor(() => expect(bank.value).toBe('makaton'))
     await waitFor(() => expect(repositories.boards.save).toHaveBeenCalledWith(expect.objectContaining({ pictogramBank: 'makaton' })))
   })
 
@@ -124,9 +193,9 @@ describe('choix de la banque de pictogrammes', () => {
     repositories.folders.list.mockResolvedValue([])
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => scleraIndex }))
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /Sclera Choisir/ }))
-    await waitFor(() => expect(screen.getByRole('button', { name: /Sclera Banque de ce TLA/ }).getAttribute('aria-pressed')).toBe('true'))
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier mon TLA' }))
+    const bank = screen.getByRole('combobox', { name: 'Banque de pictogrammes' }) as HTMLSelectElement
+    fireEvent.change(bank, { target: { value: 'sclera' } })
+    await waitFor(() => expect(bank.value).toBe('sclera'))
     fireEvent.click(screen.getByRole('button', { name: 'Générer depuis une liste' }))
     fireEvent.change(screen.getByPlaceholderText('Ajouter ici vos mots'), { target: { value: 'école, inconnu' } })
     fireEvent.click(screen.getByRole('button', { name: 'Rechercher les pictogrammes proposés' }))
@@ -232,7 +301,6 @@ describe('régressions de fiabilité dans les parcours utilisateur', () => {
     render(<App />)
     const title = await screen.findByDisplayValue('Deux cases')
     fireEvent.change(title, { target: { value: 'Deux cases éditées' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier mon TLA' }))
     fireEvent.click(screen.getByRole('button', { name: 'Générer depuis une liste' }))
     fireEvent.change(screen.getByPlaceholderText('Ajouter ici vos mots'), { target: { value: 'chat, chat, chien' } })
     fireEvent.click(screen.getByRole('button', { name: 'Rechercher les pictogrammes proposés' }))
